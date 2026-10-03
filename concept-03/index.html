@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/meshijin-gourmet-map-pages/vendor/react.production.min.js"></script><script src="/meshijin-gourmet-map-pages/vendor/react-dom.production.min.js"></script><script src="./stores.js"></script><script src="./support.js"></script>
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="strict-origin-when-cross-origin">
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>飯人｜長崎の紹介店を写真から探す</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/meshijin-gourmet-map-pages/vendor/leaflet.css">
+<script src="/meshijin-gourmet-map-pages/vendor/leaflet.js"></script>
+<script src="./images.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:oklch(0.13 0.006 60);color:oklch(0.95 0.01 85);font-family:"Zen Kaku Gothic New",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:oklch(0.95 0.01 85);text-decoration:none}
+a:hover{color:oklch(0.8 0.13 65)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+::selection{background:oklch(0.8 0.13 65);color:oklch(0.13 0.006 60)}
+.mapwrap .leaflet-tile-pane{filter:grayscale(1) invert(1) brightness(.7) contrast(1.15) sepia(.35) saturate(.75)}
+.mapwrap.leaflet-container{background:oklch(0.14 0.006 60);font-family:inherit}
+.mapwrap .leaflet-control-attribution{background:transparent!important;color:oklch(0.62 0.01 75)!important;font:10px "IBM Plex Mono",monospace!important;padding:4px 10px!important}
+.mapwrap .leaflet-control-attribution a{color:inherit!important}
+.leaflet-div-icon{background:none;border:0}
+.mp{transform:rotate(var(--r));transition:transform .45s cubic-bezier(.2,.8,.2,1),box-shadow .3s;box-shadow:0 0 0 2px oklch(0.95 0.01 85),0 10px 24px oklch(0 0 0/.6);cursor:pointer}
+.mp:hover{transform:rotate(0) translateY(-5px) scale(1.1)}
+.mp.sel{transform:rotate(0) translateY(-10px) scale(1.32);box-shadow:0 0 0 2px oklch(0.8 0.13 65),0 0 0 7px oklch(0.8 0.13 65/.22),0 16px 34px oklch(0 0 0/.65)}
+.pimg{opacity:0;transition:opacity .3s}.pimg[data-filled]{opacity:1}
+image-slot{transition:opacity .3s}image-slot:not([data-filled]):not(:hover):not([data-over]){opacity:0}
+.mk.ign{animation:drop .8s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d)}
+@keyframes drop{0%{opacity:0;transform:translateY(-26px)}100%{opacity:1;transform:none}}
+@keyframes drift{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+@keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes cue{0%,100%{transform:scaleY(.3);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}}
+</style>
+<style>
+.preview-banner{position:relative;z-index:40;background:#2d2318;color:#f5e9cc;padding:10px 20px;font:12px/1.7 "Zen Kaku Gothic New",sans-serif}.preview-banner a{text-decoration:underline;margin-left:12px;color:inherit}
+.preview-search{display:flex;align-items:center;gap:10px;flex-wrap:wrap;pointer-events:auto;flex-basis:100%;color:#eee9df}.preview-search label{display:flex;flex-direction:column;gap:4px;font-size:11px;flex:1 1 180px;min-width:0;max-width:460px}.preview-search input{width:100%;background:#201d18;color:#fff;border:1px solid #645a49;border-radius:0;padding:9px 12px;font:14px/1.5 sans-serif;min-width:0}.preview-search button{min-height:44px;padding:8px 12px;border:1px solid #645a49;font-size:12px}.preview-map-note{font-size:11px;color:#d5c4a7}
+.preview-results{position:absolute;left:clamp(12px,2.4vw,28px);top:170px;bottom:150px;width:min(420px,calc(100% - 24px));z-index:550;overflow:auto;background:#171511f5;border:1px solid #625441;padding:14px 18px}.preview-results p{font-size:12px;line-height:1.7}.preview-result{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:14px;width:100%;padding:14px 0;border-top:1px solid #423b31}.preview-result strong{display:block;font-size:16px}.preview-result small{display:block;margin-top:6px;color:#d5c4a7;font-size:11px}.preview-result>span:last-child{font-size:11px;white-space:nowrap}
+.preview-status{position:fixed;left:16px;bottom:18px;max-width:calc(100% - 32px);z-index:700;background:#302619;color:#f6eedc;padding:12px 16px;font-size:13px;line-height:1.7;border:1px solid #b69567}.preview-status button{display:block;text-decoration:underline;min-height:44px}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #e8b76c;outline-offset:4px}button[disabled]{cursor:default;opacity:.6}image-slot{opacity:1!important}
+@media(max-width:600px){.preview-results{top:215px;bottom:170px}.preview-map-note{flex-basis:100%}.preview-search{gap:6px}.preview-search label{flex:1 1 190px}.preview-banner{padding:8px 16px}.preview-building-row{grid-template-columns:38px 44px minmax(0,1fr)!important;gap:10px!important}.preview-building-row>span:last-child{display:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style></helmet>
+<div style="position:relative;min-height:100vh;background:oklch(0.13 0.006 60);color:oklch(0.95 0.01 85);overflow-x:hidden">
+
+  <aside class="preview-banner">案3のデザイン比較版。店舗情報と位置は確認前です。画像はAI生成の仮画像です。<a href="/meshijin-gourmet-map-pages/">案を比較する</a></aside><div style="display:{{ introDisplay }}"><header style="position:absolute;top:50px;left:0;right:0;z-index:20;background:linear-gradient(oklch(0.13 0.006 60) 30%,oklch(0.13 0.006 60/0));display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px clamp(20px,4vw,56px)">
+    <a href="#" style="display:flex;align-items:baseline;gap:10px">
+      <span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:26px;letter-spacing:.08em">飯人</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.24em;color:oklch(0.72 0.012 75)">MESHIJIN</span>
+    </a>
+    <nav style="display:flex;align-items:center;gap:clamp(14px,2.4vw,32px);font-size:13px;font-weight:500">
+      <button onClick="{{ openMap }}" style="display:flex;align-items:center;gap:8px;height:44px">地図<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:oklch(0.72 0.012 75)">MAP</span></button>
+      <a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;height:44px">Instagram<span style="font-size:11px">↗</span></a>
+    </nav>
+  </header>
+
+  <section data-screen-label="01 紹介トップ" style="position:relative;min-height:100vh;display:flex;flex-wrap:wrap;align-items:stretch">
+    <div style="flex:1 1 480px;display:flex;flex-direction:column;justify-content:flex-end;gap:36px;padding:140px clamp(20px,4vw,56px) clamp(40px,6vw,72px);position:relative;z-index:2">
+      <div style="display:flex;align-items:center;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;color:oklch(0.72 0.012 75)"><span style="width:28px;height:1px;background:oklch(0.72 0.012 75)"></span>NAGASAKI · FOOD CREATOR</div>
+      <h1 style="margin:0;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:clamp(40px,5.2vw,96px);line-height:1.18;letter-spacing:.02em;animation:rise 1.1s cubic-bezier(.2,.8,.2,1) both"><span style="white-space:nowrap;display:block">長崎の紹介店を、</span><span style="white-space:nowrap;display:block">写真から探す。</span></h1>
+      <p style="margin:0;max-width:30em;font-size:clamp(14px,1.15vw,16px);line-height:2.1;color:oklch(0.82 0.01 80);text-wrap:pretty;animation:rise 1.1s .15s cubic-bezier(.2,.8,.2,1) both">飯人がInstagramで紹介した長崎のお店を、写真と地図から探せます。気になるお店を選ぶと、店舗情報と紹介投稿を確認できます。</p>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px;animation:rise 1.1s .3s cubic-bezier(.2,.8,.2,1) both">
+        <button onClick="{{ openMap }}" style="height:64px;padding:0 14px 0 28px;display:flex;align-items:center;gap:24px;background:oklch(0.95 0.01 85);color:oklch(0.13 0.006 60);font-size:16px;font-weight:700;letter-spacing:.04em" style-hover="background:oklch(0.8 0.13 65)">地図で探す<span style="height:40px;min-width:40px;padding:0 10px;display:flex;align-items:center;justify-content:center;background:oklch(0.13 0.006 60);color:oklch(0.95 0.01 85);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500">{{ total }}店</span></button>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:oklch(0.72 0.012 75)">VOL.{{ oldestVol }} — VOL.{{ latestVol }}</span>
+      </div>
+    </div>
+    <div style="flex:1 1 440px;min-height:640px;height:100vh;position:relative;overflow:hidden;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:0 clamp(12px,2vw,28px) 0 0;-webkit-mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent)">
+      <sc-for list="{{ heroCols }}" as="col" hint-placeholder-count="3">
+        <div style="position:relative;overflow:visible;margin-top:{{ col.offset }}" style-hover="animation-play-state:paused">
+          <div style="display:flex;flex-direction:column;gap:14px;animation:drift {{ col.dur }} linear infinite;animation-direction:{{ col.dir }};animation-play-state:{{ motion }}">
+            <sc-for list="{{ col.items }}" as="it" hint-placeholder-count="6">
+              <button onClick="{{ it.open }}" style="display:flex;flex-direction:column;gap:8px;text-align:left">
+                <div style="position:relative;width:100%;aspect-ratio:{{ ratio }};background:{{ it.tile }};overflow:hidden">
+                  <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:40px;color:{{ it.kc }};opacity:.9">{{ it.k }}</span>
+                  <image-slot data-photo-id="{{ it.pid }}" shape="rect" class="ph" placeholder="料理の仮画像（AI生成）" style="position:absolute;inset:0;color:oklch(0.8 0.01 80)"></image-slot>
+                </div>
+                <span style="display:flex;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:oklch(0.72 0.012 75)"><span>VOL.{{ it.vol }}</span><span>{{ it.area }}</span></span>
+                <span style="font-family:'Shippori Mincho B1',serif;font-weight:700;font-size:14px;line-height:1.4;margin-top:-4px">{{ it.name }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="position:absolute;left:clamp(20px,4vw,56px);bottom:0;width:1px;height:40px;background:oklch(0.95 0.01 85);animation:cue 2.4s ease-in-out infinite;opacity:.6"></div>
+  </section>
+
+  <section data-screen-label="02 飯人について" style="padding:clamp(80px,12vw,180px) clamp(20px,4vw,56px);display:flex;flex-wrap:wrap;gap:clamp(40px,6vw,96px);align-items:flex-start;border-top:1px solid oklch(0.24 0.006 60)">
+    <div style="flex:0 1 360px;display:flex;flex-direction:column;gap:12px">
+      <div style="position:relative;width:100%;aspect-ratio:4/5;background:linear-gradient(160deg,oklch(0.3 0.02 60),oklch(0.17 0.008 60))">
+        <image-slot data-photo-id="profile-portrait" shape="rect" class="ph" placeholder="本人の写真またはアイコン" style="position:absolute;inset:0;color:oklch(0.8 0.01 80)"></image-slot>
+      </div>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:oklch(0.72 0.012 75)">料理写真の仮イメージ</span>
+    </div>
+    <div style="flex:1 1 380px;display:flex;flex-direction:column;gap:44px;max-width:720px">
+      <div style="display:flex;align-items:center;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;color:oklch(0.72 0.012 75)"><span style="width:28px;height:1px;background:oklch(0.72 0.012 75)"></span>ABOUT</div>
+      <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 24px">
+        <h2 style="margin:0;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:clamp(72px,10vw,148px);line-height:1;letter-spacing:.06em">飯人</h2>
+        <a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.04em;border-bottom:1px solid oklch(0.4 0.006 60);padding-bottom:3px">@meshijin_food ↗</a>
+      </div>
+      <div style="display:flex;flex-direction:column;border-top:1px solid oklch(0.26 0.006 60)">
+        <div style="display:grid;grid-template-columns:48px minmax(0,1fr);gap:16px;align-items:baseline;padding:20px 0;border-bottom:1px solid oklch(0.26 0.006 60)"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.72 0.012 75)">01</span><span style="font-family:'Shippori Mincho B1',serif;font-weight:700;font-size:clamp(20px,2.2vw,28px);line-height:1.5">料理の写真を撮る</span></div>
+        <div style="display:grid;grid-template-columns:48px minmax(0,1fr);gap:16px;align-items:baseline;padding:20px 0;border-bottom:1px solid oklch(0.26 0.006 60)"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.72 0.012 75)">02</span><span style="font-family:'Shippori Mincho B1',serif;font-weight:700;font-size:clamp(20px,2.2vw,28px);line-height:1.5">写真でお店を紹介する</span></div>
+        <div style="display:grid;grid-template-columns:48px minmax(0,1fr);gap:16px;align-items:baseline;padding:20px 0;border-bottom:1px solid oklch(0.26 0.006 60)"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.72 0.012 75)">03</span><span style="font-family:'Shippori Mincho B1',serif;font-weight:700;font-size:clamp(20px,2.2vw,28px);line-height:1.5">長崎スタジアムシティのお店も紹介</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:15px;line-height:2.1;color:oklch(0.82 0.01 80);text-wrap:pretty">飯人はInstagramで長崎の飲食店を紹介しています。活動内容や撮影の相談先は、Instagramのプロフィールをご確認ください。</p>
+        <span style="align-self:flex-start;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;padding:3px 8px;border:1px dashed oklch(0.83 0.14 78);color:oklch(0.83 0.14 78)">プロフィールの詳しい紹介は準備中です。</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:40px 64px">
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:clamp(40px,4.6vw,64px);font-weight:400;line-height:1;letter-spacing:-.02em">{{ total }}</span><span style="font-size:12px;color:oklch(0.72 0.012 75)">収録した店舗数</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:clamp(40px,4.6vw,64px);font-weight:400;line-height:1;letter-spacing:-.02em">{{ latestVol }}</span><span style="font-size:12px;color:oklch(0.72 0.012 75)">収録した最新のVol.番号</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-screen-label="03 最近の食景" style="padding:0 0 clamp(80px,12vw,160px);display:flex;flex-direction:column;gap:36px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:20px;padding:0 clamp(20px,4vw,56px)">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;align-items:center;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;color:oklch(0.72 0.012 75)"><span style="width:28px;height:1px;background:oklch(0.72 0.012 75)"></span>RECENT</div>
+        <h2 style="margin:0;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:clamp(34px,4.4vw,64px);line-height:1.2">最近紹介されたお店</h2>
+      </div>
+      <button onClick="{{ openMap }}" style="height:48px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;border-bottom:1px solid oklch(0.95 0.01 85)" style-hover="color:oklch(0.8 0.13 65);border-color:oklch(0.8 0.13 65)">地図ですべて見る<span style="font-family:'IBM Plex Mono',monospace">→</span></button>
+    </div>
+    <div style="display:flex;gap:clamp(14px,1.6vw,24px);overflow-x:auto;scroll-snap-type:x mandatory;padding:0 clamp(20px,4vw,56px) 8px;scrollbar-width:none">
+      <sc-for list="{{ recent }}" as="it" hint-placeholder-count="6">
+        <button onClick="{{ it.open }}" style="flex:0 0 clamp(220px,22vw,320px);scroll-snap-align:start;display:flex;flex-direction:column;gap:14px;text-align:left" style-hover="color:oklch(0.8 0.13 65)">
+          <div style="position:relative;width:100%;aspect-ratio:{{ ratio }};background:{{ it.tile }};overflow:hidden">
+            <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:64px;color:{{ it.kc }};opacity:.9">{{ it.k }}</span>
+            <image-slot data-photo-id="{{ it.pid }}" shape="rect" class="ph" placeholder="料理の仮画像（AI生成）" style="position:absolute;inset:0;color:oklch(0.8 0.01 80)"></image-slot>
+            <span style="position:absolute;left:0;top:0;background:oklch(0.13 0.006 60);color:oklch(0.95 0.01 85);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;padding:6px 9px;pointer-events:none">VOL.{{ it.vol }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:oklch(0.72 0.012 75)"><span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:14px;color:{{ it.kc }}">{{ it.k }}</span>{{ it.area }}<span>·</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">{{ it.date }}</span></span>
+            <span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:20px;line-height:1.4">{{ it.name }}</span>
+          </div>
+        </button>
+      </sc-for>
+    </div>
+  </section>
+
+  <section data-screen-label="04 地図への入口" style="padding:clamp(80px,12vw,160px) clamp(20px,4vw,56px);border-top:1px solid oklch(0.24 0.006 60);display:flex;flex-direction:column;gap:56px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:28px">
+      <h2 style="margin:0;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:clamp(44px,7vw,112px);line-height:1.15;letter-spacing:.02em">地図から、<br>お店を探す。</h2>
+      <p style="margin:0;max-width:26em;font-size:14px;line-height:2.1;color:oklch(0.82 0.01 80)">ジャンルを選ぶと、地図上の紹介店を絞り込めます。写真のピンから、お店の情報と紹介投稿をご覧ください。</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid oklch(0.26 0.006 60);border-left:1px solid oklch(0.26 0.006 60)">
+      <sc-for list="{{ genres }}" as="g" hint-placeholder-count="7">
+        <button onClick="{{ g.open }}" style="min-height:190px;padding:20px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;border-right:1px solid oklch(0.26 0.006 60);border-bottom:1px solid oklch(0.26 0.006 60);transition:background .3s" style-hover="background:oklch(0.17 0.006 60)">
+          <span style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.72 0.012 75)"><span>{{ g.n }}</span><span>{{ g.count }}店</span></span>
+          <span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:72px;line-height:1;color:{{ g.c }}">{{ g.k }}</span>
+          <span style="font-size:13px;font-weight:500">{{ g.l }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </section>
+
+  <footer style="padding:48px clamp(20px,4vw,56px) 40px;border-top:1px solid oklch(0.24 0.006 60);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:44px;letter-spacing:.08em;line-height:1">飯人</span>
+      <span style="font-size:12px;line-height:1.9;color:oklch(0.72 0.012 75)">店舗情報は紹介投稿の記載に基づいています。店舗公式との照合前です。<br>PR表示は原案の記載に基づきます。確認前の情報を含みます。</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px 28px;font-size:13px">
+      <a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener">撮影・PRのご相談 ↗</a>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.62 0.01 75)"><a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">地図：国土地理院</a></span>
+    </div>
+  </footer></div>
+
+  <div data-screen-label="05 マップ" style="position:fixed;inset:0;z-index:50;background:oklch(0.14 0.006 60);clip-path:{{ mapClip }};pointer-events:{{ mapPE }};transition:clip-path 1s cubic-bezier(.76,0,.24,1)">
+    <div ref="{{ mapRef }}" class="mapwrap" style="position:absolute;inset:0"></div>
+    <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 90% at 50% 50%,transparent 55%,oklch(0.06 0.004 60/.55));z-index:400"></div>
+    <div style="position:absolute;left:0;right:0;top:0;z-index:500;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:16px clamp(12px,2.4vw,28px) 40px;background:linear-gradient(oklch(0.12 0.005 60/.92) 45%,transparent);pointer-events:none">
+      <button onClick="{{ goIntro }}" style="pointer-events:auto;height:48px;display:flex;align-items:center;gap:12px;padding:0 18px 0 14px;background:oklch(0.13 0.006 60);border:1px solid oklch(0.3 0.006 60)" style-hover="border-color:oklch(0.95 0.01 85)"><span style="font-family:'IBM Plex Mono',monospace;font-size:14px">←</span><span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:20px;letter-spacing:.08em;line-height:1">飯人</span></button>
+      <div style="pointer-events:auto;flex:1 1 300px;min-width:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
+        <span style="font-size:11px;color:#d5c4a7;padding:8px 0">営業状況は確認前です。</span>
+        <sc-for list="{{ chips }}" as="c" hint-placeholder-count="7">
+          <button onClick="{{ c.toggle }}" style="flex-shrink:0;height:40px;padding:0 13px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;white-space:nowrap;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};transition:background .2s,color .2s"><span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:16px;line-height:1;color:{{ c.kc }}">{{ c.k }}</span>{{ c.l }}</button>
+        </sc-for>
+      </div>
+      <div class="preview-search"><label>店名・エリア・Vol.番号<input type="search" value="{{ q }}" onInput="{{ search }}" placeholder="例：BABAKE、諫早、414" aria-label="店名・エリア・Vol.番号"></label><button onClick="{{ clearSearch }}" aria-label="検索条件をリセット">リセット</button><button onClick="{{ toggleList }}" aria-pressed="{{ listOpen }}">{{ listLabel }}</button><span class="preview-map-note">画像はAI生成、位置は確認前です。</span></div></div>
+<sc-if value="{{ listOpen }}"><section class="preview-results" aria-label="検索結果"><p role="status">{{ matching }}店。{{ resultNote }}</p><sc-for list="{{ rows }}" as="r"><button onClick="{{ r.open }}" class="preview-result"><span><strong>{{ r.name }}</strong><small>{{ r.area }} · Vol.{{ r.vol }}</small></span><span>詳細を見る →</span></button></sc-for><sc-if value="{{ empty }}"><p>条件に合うお店がありません。店名やジャンルを変えてお試しください。</p></sc-if></section></sc-if><div style="position:absolute;left:0;right:0;bottom:0;z-index:500;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;padding:40px clamp(12px,2.4vw,28px) 18px;background:linear-gradient(transparent,oklch(0.12 0.005 60/.92) 55%);pointer-events:none">
+      <div style="pointer-events:auto;display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%">
+        <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'IBM Plex Mono',monospace;font-size:44px;line-height:1;letter-spacing:-.02em">{{ count }}</span><span style="font-size:13px;color:oklch(0.82 0.01 80)">店をこの範囲に表示</span></div>
+        <div style="display:flex;gap:18px;overflow-x:auto;scrollbar-width:none;max-width:100%">
+          <sc-for list="{{ areas }}" as="a" hint-placeholder-count="5">
+            <button onClick="{{ a.go }}" style="flex-shrink:0;height:36px;font-size:13px;white-space:nowrap;font-weight:{{ a.fw }};color:{{ a.fg }};border-bottom:1.5px solid {{ a.bd }}">{{ a.l }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:oklch(0.62 0.01 75);padding-bottom:10px">写真のピンから店舗情報を見る</span>
+    </div>
+  </div>
+
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ close }}" style="position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:oklch(0.07 0.004 60/.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:fade .35s both">
+      <div onClick="{{ stop }}" role="dialog" aria-modal="true" aria-label="店舗詳細" data-screen-label="06 店舗モーダル" style="position:relative;width:{{ L.pW }};height:{{ L.pH }};display:flex;flex-direction:{{ L.dir }};overflow-y:{{ L.pOv }};background:oklch(0.13 0.006 60);box-shadow:0 40px 120px oklch(0 0 0/.6);animation:rise .55s cubic-bezier(.2,.8,.2,1) both;scrollbar-width:none">
+
+        <div style="flex:0 0 auto;width:{{ L.lW }};height:{{ L.lH }};display:flex;flex-direction:column;background:oklch(0.1 0.005 60)">
+          <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:{{ L.ctPad }}">
+            <div style="position:relative;height:{{ L.inH }};width:{{ L.inW }};max-width:100%;max-height:100%;aspect-ratio:{{ ratio }};background:{{ m.tile }};overflow:hidden">
+              <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:120px;color:{{ m.kc }};opacity:.85">{{ m.k }}</span>
+              <image-slot data-photo-id="{{ m.mainId }}" shape="rect" class="ph" placeholder="料理の仮画像（AI生成）" style="position:absolute;inset:0;color:oklch(0.85 0.01 80)"></image-slot>
+              <span style="position:absolute;right:0;bottom:0;background:oklch(0.1 0.005 60);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;padding:7px 10px;pointer-events:none">{{ m.piLabel }}</span>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:10px;padding:14px 20px 22px">
+            <sc-for list="{{ m.photos }}" as="p" hint-placeholder-count="3">
+              <button onClick="{{ p.pick }}" aria-label="写真 {{ p.n }}" style="position:relative;width:52px;aspect-ratio:{{ ratio }};background:{{ m.tile }};outline:1.5px solid {{ p.ol }};outline-offset:3px;opacity:{{ p.op }};transition:opacity .2s">
+                <image-slot data-photo-id="{{ p.id }}" shape="rect" class="pimg" placeholder="" style="position:absolute;inset:0;pointer-events:none;color:oklch(0.8 0.01 80)"></image-slot>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="flex:1 1 auto;min-width:0;overflow-y:{{ L.rOv }};scrollbar-width:none;display:flex;flex-direction:column">
+          <div style="position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:12px;padding:14px 12px 14px clamp(20px,3vw,40px);background:oklch(0.13 0.006 60);border-bottom:1px solid oklch(0.24 0.006 60)">
+            <span style="font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11px;letter-spacing:.12em;padding:4px 8px;border:1px solid oklch(0.95 0.01 85);white-space:nowrap">{{ m.volLabel }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;color:oklch(0.72 0.012 75);white-space:nowrap">{{ m.date }}</span>
+            <span style="flex:1"></span>
+            <button onClick="{{ prev }}" aria-label="前のお店" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:15px;border:1px solid oklch(0.26 0.006 60)" style-hover="border-color:oklch(0.95 0.01 85)">←</button>
+            <button onClick="{{ next }}" aria-label="次のお店" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:15px;border:1px solid oklch(0.26 0.006 60)" style-hover="border-color:oklch(0.95 0.01 85)">→</button>
+            <button onClick="{{ close }}" aria-label="閉じる" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;background:oklch(0.95 0.01 85);color:oklch(0.13 0.006 60)">×</button>
+          </div>
+
+          <sc-if value="{{ isBuilding }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:32px clamp(20px,3vw,40px) 48px;display:flex;flex-direction:column;gap:28px">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span style="font-size:12px;color:oklch(0.72 0.012 75)">{{ bld.addr }} · {{ bld.n }}店を紹介 · フロア順</span>
+                <h2 style="margin:0;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:clamp(30px,3.2vw,46px);line-height:1.25">{{ bld.name }}</h2>
+              </div>
+              <div style="display:flex;flex-direction:column;border-top:1px solid oklch(0.26 0.006 60)">
+                <sc-for list="{{ bld.items }}" as="b" hint-placeholder-count="6">
+                  <button onClick="{{ b.open }}" class="preview-building-row" style="display:grid;grid-template-columns:48px 52px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid oklch(0.26 0.006 60);text-align:left" style-hover="background:oklch(0.16 0.006 60)">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;color:{{ b.flc }}">{{ b.fl }}</span>
+                    <span style="position:relative;width:52px;aspect-ratio:{{ ratio }};background:{{ b.tile }};display:flex;align-items:center;justify-content:center;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:20px;color:{{ b.kc }}">{{ b.k }}<image-slot data-photo-id="{{ b.pid }}" shape="rect" placeholder="" class="pimg" style="position:absolute;inset:0;pointer-events:none"></image-slot></span>
+                    <span style="display:flex;flex-direction:column;gap:5px;min-width:0">
+                      <span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:18px;line-height:1.35">{{ b.name }}</span>
+                      <span style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:oklch(0.72 0.012 75)">{{ b.st }}<span style="font-family:'IBM Plex Mono',monospace;font-size:11px">VOL.{{ b.vol }}</span><sc-if value="{{ b.pr }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:700;padding:1px 6px;background:oklch(0.95 0.01 85);color:oklch(0.13 0.006 60);letter-spacing:.08em">PR</span></sc-if><sc-if value="{{ b.lim }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:700;padding:0 5px;border:1px solid oklch(0.95 0.01 85);color:oklch(0.95 0.01 85)">期間限定</span></sc-if></span>
+                    </span>
+                    <span style="font-family:'IBM Plex Mono',monospace;color:oklch(0.72 0.012 75)">→</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isStore }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:32px clamp(20px,3vw,40px) 48px;display:flex;flex-direction:column;gap:32px">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <sc-if value="{{ m.inBuilding }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openBuilding }}" style="align-self:flex-start;font-size:12px;color:oklch(0.72 0.012 75);min-height:28px" style-hover="color:oklch(0.95 0.01 85)">← 長崎スタジアムシティの{{ m.bldN }}店</button></sc-if>
+                <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:oklch(0.72 0.012 75)"><span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:16px;color:{{ m.kc }}">{{ m.k }}</span>{{ m.gl }}<span>·</span>{{ m.area }}</span>
+                <h2 style="margin:0;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:clamp(32px,3.4vw,50px);line-height:1.22;letter-spacing:.01em;text-wrap:pretty">{{ m.name }}<sc-if value="{{ m.pr }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;margin-left:12px;vertical-align:.4em;padding:0 8px;background:oklch(0.95 0.01 85);color:oklch(0.13 0.006 60);font-family:'Zen Kaku Gothic New',sans-serif;font-size:11px;font-weight:700;letter-spacing:.12em">PR</span></sc-if></h2>
+                <sc-if value="{{ m.branch }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:oklch(0.72 0.012 75);margin-top:-6px">{{ m.branch }}</span></sc-if>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+                  <span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:{{ m.stColor }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ m.stDot }};box-shadow:0 0 0 1.5px {{ m.stColor }}"></span>{{ m.stText }}</span>
+                  <sc-for list="{{ m.tags }}" as="t" hint-placeholder-count="0"><span style="font-size:12px;font-weight:700;padding:3px 9px;line-height:1.5;border:1px solid {{ t.bd }};background:{{ t.bg }};color:{{ t.fg }}">{{ t.t }}</span></sc-for>
+                </div>
+              </div>
+
+              <figure style="margin:0;display:flex;flex-direction:column;gap:16px;padding:28px 0 4px;border-top:1px solid oklch(0.26 0.006 60)">
+                <span style="font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:64px;line-height:.5;color:oklch(0.8 0.13 65);height:28px">“</span>
+                <blockquote style="margin:0;font-family:'Shippori Mincho B1',serif;font-weight:500;font-size:clamp(17px,1.5vw,20px);line-height:2;text-wrap:pretty">飯人の紹介コメントは、Instagramの投稿でご覧いただけます。</blockquote>
+                <figcaption style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12px;color:oklch(0.72 0.012 75)"><span style="width:20px;height:1px;background:oklch(0.72 0.012 75)"></span>飯人の{{ m.volLabel }}を紹介<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;padding:2px 7px;border:1px dashed oklch(0.83 0.14 78);color:oklch(0.83 0.14 78)">紹介コメントは投稿をご覧ください</span></figcaption>
+              </figure>
+
+              <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:8px">
+                <a href="{{ m.postUrl }}" target="_blank" rel="noopener" style="min-height:64px;padding:0 16px;display:flex;flex-direction:column;justify-content:center;gap:4px;background:oklch(0.95 0.01 85);color:oklch(0.13 0.006 60);font-size:14px;font-weight:700" style-hover="background:oklch(0.8 0.13 65);color:oklch(0.13 0.006 60)">投稿を見る<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.08em">INSTAGRAM ↗</span></a>
+                <a href="{{ m.routeUrl }}" target="_blank" rel="noopener" style="min-height:64px;padding:0 14px;display:flex;flex-direction:column;justify-content:center;gap:4px;border:1px solid oklch(0.3 0.006 60);font-size:14px;font-weight:700" style-hover="border-color:oklch(0.95 0.01 85);color:oklch(0.95 0.01 85)">地図アプリで探す<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.08em;color:oklch(0.72 0.012 75)">MAP APP ↗</span></a>
+                <sc-if value="{{ m.igOn }}" hint-placeholder-val="{{ true }}"><a href="{{ m.igUrl }}" target="_blank" rel="noopener" style="min-height:64px;padding:0 14px;display:flex;flex-direction:column;justify-content:center;gap:4px;border:1px solid oklch(0.3 0.006 60);font-size:14px;font-weight:700" style-hover="border-color:oklch(0.95 0.01 85);color:oklch(0.95 0.01 85)">{{ m.igLabel }}<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:400;letter-spacing:.08em;color:oklch(0.72 0.012 75)">INSTAGRAM ↗</span></a></sc-if>
+                <sc-if value="{{ m.igOff }}" hint-placeholder-val="{{ false }}"><span style="min-height:64px;padding:0 14px;display:flex;flex-direction:column;justify-content:center;gap:4px;border:1px dashed oklch(0.3 0.006 60);font-size:14px;font-weight:500;color:oklch(0.72 0.012 75)">{{ m.igOffText }}<span style="font-size:10px">{{ m.igOffSub }}</span></span></sc-if>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:center;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;color:oklch(0.72 0.012 75)">INFORMATION<span style="flex:1;height:1px;background:oklch(0.26 0.006 60)"></span><span style="font-family:'Zen Kaku Gothic New',sans-serif;letter-spacing:.04em">投稿時点の記載</span></div>
+                <div style="display:grid;grid-template-columns:72px minmax(0,1fr);column-gap:20px">
+                  <span style="text-align:right;font-size:11px;letter-spacing:.14em;color:oklch(0.72 0.012 75);padding:14px 0;border-bottom:1px solid oklch(0.22 0.006 60)">営業時間</span>
+                  <span style="padding:11px 0;border-bottom:1px solid oklch(0.22 0.006 60);display:flex;flex-direction:column;gap:4px">
+                    <sc-if value="{{ m.hoursOk }}" hint-placeholder-val="{{ true }}"><span style="font-family:'IBM Plex Mono',monospace;font-size:17px">{{ m.hours }}</span></sc-if>
+                    <sc-if value="{{ m.hoursCheck }}" hint-placeholder-val="{{ false }}"><span style="align-self:flex-start;font-size:12px;padding:1px 8px;border:1px solid oklch(0.83 0.14 78);color:oklch(0.83 0.14 78)">記載に誤りの可能性があります</span></sc-if>
+                    <sc-if value="{{ m.hoursNote }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:oklch(0.72 0.012 75)">{{ m.hoursNote }}</span></sc-if>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.6 0.01 75);line-height:1.6">原文 {{ m.hoursRaw }}</span>
+                  </span>
+                  <span style="text-align:right;font-size:11px;letter-spacing:.14em;color:oklch(0.72 0.012 75);padding:14px 0;border-bottom:1px solid oklch(0.22 0.006 60)">定休日</span>
+                  <span style="padding:12px 0;border-bottom:1px solid oklch(0.22 0.006 60);font-size:14px;line-height:1.7"><sc-if value="{{ m.closed }}" hint-placeholder-val="{{ true }}">{{ m.closed }}</sc-if><sc-if value="{{ m.closedNA }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;padding:1px 8px;border:1px dashed oklch(0.72 0.012 75);color:oklch(0.72 0.012 75)">記載なし</span></sc-if></span>
+                  <span style="text-align:right;font-size:11px;letter-spacing:.14em;color:oklch(0.72 0.012 75);padding:14px 0;border-bottom:1px solid oklch(0.22 0.006 60)">駐車場</span>
+                  <span style="padding:12px 0;border-bottom:1px solid oklch(0.22 0.006 60);font-size:14px;line-height:1.7">{{ m.park }}</span>
+                  <span style="text-align:right;font-size:11px;letter-spacing:.14em;color:oklch(0.72 0.012 75);padding:14px 0;border-bottom:1px solid oklch(0.22 0.006 60)">支払い</span>
+                  <span style="padding:12px 0;border-bottom:1px solid oklch(0.22 0.006 60);font-size:14px;line-height:1.7;display:flex;flex-direction:column;gap:4px;align-items:flex-start"><sc-if value="{{ m.payCash }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:700;padding:2px 9px;background:oklch(0.83 0.14 78);color:oklch(0.13 0.006 60)">¥ 現金のみ</span></sc-if><sc-if value="{{ m.payPlain }}" hint-placeholder-val="{{ true }}"><span>{{ m.pay }}</span></sc-if><sc-if value="{{ m.payNA }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;padding:1px 8px;border:1px dashed oklch(0.72 0.012 75);color:oklch(0.72 0.012 75)">記載なし</span></sc-if></span>
+                  <span style="text-align:right;font-size:11px;letter-spacing:.14em;color:oklch(0.72 0.012 75);padding:14px 0;border-bottom:1px solid oklch(0.22 0.006 60)">住所</span>
+                  <span style="padding:12px 0;border-bottom:1px solid oklch(0.22 0.006 60);font-size:14px;line-height:1.7;display:flex;flex-direction:column;gap:2px"><span>{{ m.addr }}</span><sc-if value="{{ m.floorLine }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:oklch(0.72 0.012 75)">{{ m.floorLine }}</span></sc-if></span>
+                </div>
+              </div>
+
+              <sc-if value="{{ m.multi }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;align-items:center;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;color:oklch(0.72 0.012 75)">飯人の投稿<span style="flex:1;height:1px;background:oklch(0.26 0.006 60)"></span><span>{{ m.postCount }} · 新しい順</span></div>
+                  <sc-for list="{{ m.posts }}" as="p" hint-placeholder-count="2">
+                    <a href="{{ p.u }}" target="_blank" rel="noopener" style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:baseline;padding:12px 0;border-bottom:1px solid oklch(0.22 0.006 60)">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em">VOL.{{ p.v }}</span>
+                      <span style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:oklch(0.72 0.012 75)">{{ p.d }}</span><span style="font-size:12px;line-height:1.6;color:oklch(0.72 0.012 75)">{{ p.n }}</span></span>
+                      <span style="font-size:12px">↗</span>
+                    </a>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.9;color:oklch(0.72 0.012 75)">
+                <span>資料の作成日 <span style="font-family:'IBM Plex Mono',monospace;color:oklch(0.95 0.01 85)">2026.09.30</span> 営業時間や支払い方法は投稿時点の情報です。最新情報は店舗公式でご確認ください。</span>
+                <sc-if value="{{ m.pr }}" hint-placeholder-val="{{ false }}"><span>このお店の紹介には店舗からの依頼が含まれます。</span></sc-if>
+                <sc-if value="{{ m.lim }}" hint-placeholder-val="{{ false }}"><span>期間限定の店舗です。営業期間は店舗公式でご確認ください。</span></sc-if>
+                <a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener noreferrer" style="align-self:flex-start;text-decoration:underline;text-underline-offset:4px;min-height:32px;display:flex;align-items:center;color:oklch(0.72 0.012 75)">飯人のプロフィールを見る</a>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+<sc-if value="{{ hasError }}"><div class="preview-status" role="alert">{{ error }}<button onClick="{{ retry }}">再読み込み</button></div></sc-if></x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;photoRatio&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;4:5&quot;,&quot;1:1&quot;],&quot;default&quot;:&quot;4:5&quot;,&quot;tsType&quot;:&quot;'4:5'|'1:1'&quot;,&quot;section&quot;:&quot;写真&quot;},&quot;tiltPins&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;地図&quot;},&quot;introMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;紹介トップ&quot;}}">
+const INK='oklch(0.95 0.01 85)',BG='oklch(0.13 0.006 60)',SUB='oklch(0.72 0.012 75)',LINE='oklch(0.3 0.006 60)',AMB='oklch(0.8 0.13 65)',OK='oklch(0.8 0.14 150)',WARN='oklch(0.83 0.14 78)';
+class Component extends DCLogic {
+  state={q:'',listOpen:false,error:'',ready:false,view:'intro',sel:null,pi:0,genre:null,openOnly:false,area:0,count:0,w:window.innerWidth};
+
+  routeHash(){const s=this.state,p=new URLSearchParams();if(s.q)p.set('q',s.q);if(s.genre)p.set('genre',s.genre);if(s.listOpen)p.set('list','1');return (s.sel?'#/store/'+encodeURIComponent(s.sel):s.view==='map'?'#/map':'#/')+(p.size?'?'+p:'')}
+  writeRoute(){const hash=this.routeHash();if(location.hash!==hash)history.replaceState(null,'',hash);document.title=(this.state.sel&&this.state.sel!=='sc'?window.MESHI.S.find(s=>s.id===this.state.sel)?.name+'｜':'')+'飯人グルメマップ｜案3'}
+  readRoute(){if(!this.map)return;this._loadingRoute=true;const raw=location.hash.slice(1),[pathname,search='']=raw.split('?');const p=new URLSearchParams(search);let id=null;try{if(pathname.startsWith('/store/'))id=decodeURIComponent(pathname.slice(7))}catch{}if(id!=='sc'&&!window.MESHI.S.some(s=>s.id===id))id=null;const genre=Object.hasOwn(window.MESHI.G,p.get('genre')||'')?p.get('genre'):null;this.setState({q:p.get('q')||'',genre,listOpen:p.get('list')==='1',view:pathname==='/map'||pathname.startsWith('/store/')?'map':'intro',sel:id},()=>{this._loadingRoute=false;this.draw();this.map.invalidateSize();this.writeRoute();if(id)this.focus(id==='sc'?window.MESHI.SC.lat:window.MESHI.S.find(s=>s.id===id).lat,id==='sc'?window.MESHI.SC.lng:window.MESHI.S.find(s=>s.id===id).lng)})}
+  matchesSearch(s){const q=this.state.q.normalize('NFKC').toLocaleLowerCase('ja').trim();if(!q)return true;return [s.name,s.branch,s.area,s.addr,...s.posts.map(p=>'vol.'+p.v)].join(' ').normalize('NFKC').toLocaleLowerCase('ja').includes(q)}
+  updateSearch(value){this.setState({q:value,sel:null},()=>this.draw())}
+  resetFilters(){this.setState({q:'',genre:null,area:4,sel:null},()=>{this.draw();if(this.map)this.map.fitBounds(window.L.latLngBounds(window.MESHI.S.map(s=>[s.lat,s.lng])),this.pad())})}
+  componentDidUpdate(){if(!window.MESHI)return;if(!this._loadingRoute)this.writeRoute();if(this.state.sel!==this._lastSelected){const current=document.querySelector('[role="dialog"]');if(this.state.sel){this._opener=document.activeElement;current?.querySelector('[aria-label="閉じる"]')?.focus()}else{if(this._opener?.isConnected)this._opener.focus()}this._lastSelected=this.state.sel}document.body.style.overflow=this.state.view==='map'?'hidden':''}
+  modalKeys(e){if(!this.state.sel||e.key!=='Tab')return;const dialog=document.querySelector('[role="dialog"]');const items=[...(dialog?.querySelectorAll('button,a[href],input')||[])].filter(el=>el.getClientRects().length);if(!items.length)return;const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}
+
+  mapRef=el=>{this.mapEl=el};
+  componentDidMount(){
+    this.onResize=()=>this.setState({w:window.innerWidth});
+    this._loadingRoute=true;this.onHash=()=>this.readRoute();window.addEventListener("hashchange",this.onHash);this.onKey=e=>{this.modalKeys(e);const s=this.state;if(e.key==='Escape'){if(s.sel)this.close();else if(s.view==='map')this.goIntro()}if(s.sel&&e.key==='ArrowRight')this.step(1);if(s.sel&&e.key==='ArrowLeft')this.step(-1)};
+    window.addEventListener('resize',this.onResize);window.addEventListener('keydown',this.onKey);
+    let attempts=0;const t=()=>{if(window.L&&window.MESHI&&this.mapEl){try{this.init()}catch{this.setState({error:"地図を読み込めませんでした。店名検索と一覧をご利用ください。",ready:true})}}else if(++attempts<200)this.tm=setTimeout(t,60);else this.setState({error:"店舗情報か地図を読み込めませんでした。ページを再読み込みしてください。"})};t();
+  }
+  componentWillUnmount(){clearTimeout(this.tm);window.removeEventListener("hashchange",this.onHash);document.body.style.overflow="";window.removeEventListener('resize',this.onResize);window.removeEventListener('keydown',this.onKey);this.map&&this.map.remove()}
+  gc(g,l=.8,c=.13){const h=window.MESHI.G[g].h;return `oklch(${l} ${h==null?0:c} ${h??0})`}
+  tile(g){const h=window.MESHI.G[g].h;return h==null?'linear-gradient(160deg,oklch(0.38 0 0),oklch(0.19 0 0))':`linear-gradient(160deg,oklch(0.42 0.075 ${h}),oklch(0.19 0.035 ${h}))`}
+  init(){
+    const {S,SC}=window.MESHI,L=window.L;
+    this.sc=S.filter(s=>s.b==='sc').sort((a,b)=>(parseInt(a.fl)||99)-(parseInt(b.fl)||99));
+    this.AREAS=[{l:"長崎市中心部",b:[[32.738,129.855],[32.778,129.885]]},{l:'長崎・時津・長与',b:[[32.74,129.84],[32.84,129.885]]},{l:'諫早',b:[[32.75,129.99],[32.87,130.06]]},{l:'大村',b:[[32.895,129.945],[32.92,129.965]]},{l:'すべて',b:null}];
+    this.map=L.map(this.mapEl,{zoomControl:false,attributionControl:false});
+    L.control.attribution({position:'bottomright',prefix:false}).addTo(this.map);
+    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',{maxZoom:18,referrerPolicy:'strict-origin-when-cross-origin',attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'}).on("tileerror",()=>this.setState({error:"背景地図を読み込めませんでした。店名検索と一覧をご利用ください。"})).addTo(this.map);
+    this.map.fitBounds(this.AREAS[0].b,this.pad());
+    this.markers=[];
+    this.map.on('zoomend',()=>this.draw());this.map.on('moveend',()=>this.count());
+    this.map.on('click',()=>{if(this.state.sel)this.close()});
+    this.setState({ready:true},()=>{this.draw();this.readRoute()});
+  }
+  pad(){return {paddingTopLeft:[40,150],paddingBottomRight:[40,150]}}
+  vis(s){return (!this.state.genre||s.g===this.state.genre)&&this.matchesSearch(s)}
+  rot(s){return this.props.tiltPins===false?0:((parseInt(s.posts[0].v)*37)%9-4)*0.9}
+  tileHTML(g,k,size){return `<div style="position:absolute;inset:0;background:${this.tile(g)};display:flex;align-items:center;justify-content:center;font-family:'Shippori Mincho B1',serif;font-weight:800;font-size:${size}px;color:${this.gc(g,.88,.1)}">${k}</div>`}
+  pinHTML(s,sel,d){const G=window.MESHI.G;return `<div class="mk${this.ign?' ign':''}" style="position:absolute;left:0;top:0;--d:${d}ms"><i style="position:absolute;left:-3px;top:-3px;width:6px;height:6px;border-radius:50%;background:${INK};box-shadow:0 0 0 2px ${BG}"></i><i style="position:absolute;left:-.5px;top:-16px;width:1px;height:13px;background:${INK};opacity:.7"></i><div class="mp${sel?' sel':''}" style="position:absolute;left:-23px;top:-76px;width:46px;height:58px;--r:${this.rot(s)}deg">${this.tileHTML(s.g,G[s.g].m,20)}<image-slot data-photo-id="p-${s.id}-0" shape="rect" class="pimg" style="position:absolute;inset:0;pointer-events:none"></image-slot><span style="position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);background:${BG};color:${INK};font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.04em;padding:3px 5px;white-space:nowrap">${s.posts[0].v}</span></div></div>`}
+  bldHTML(list,sel,d){const G=window.MESHI.G;const back=list.slice(1,3).map((s,i)=>`<div style="position:absolute;left:${-23+(i?7:-7)}px;top:${-76-(i?2:4)}px;width:46px;height:58px;transform:rotate(${i?8:-8}deg);box-shadow:0 0 0 2px ${INK},0 6px 14px oklch(0 0 0/.5)">${this.tileHTML(s.g,'',0)}<image-slot data-photo-id="p-${s.id}-0" shape="rect" class="pimg" style="position:absolute;inset:0;pointer-events:none"></image-slot></div>`).join('');const f=list[0];return `<div class="mk${this.ign?' ign':''}" style="position:absolute;left:0;top:0;--d:${d}ms"><i style="position:absolute;left:-3px;top:-3px;width:6px;height:6px;border-radius:50%;background:${AMB};box-shadow:0 0 0 2px ${BG}"></i><i style="position:absolute;left:-.5px;top:-16px;width:1px;height:13px;background:${INK};opacity:.7"></i>${back}<div class="mp${sel?' sel':''}" style="position:absolute;left:-23px;top:-76px;width:46px;height:58px;--r:0deg">${this.tileHTML(f.g,G[f.g].m,20)}<image-slot data-photo-id="p-${f.id}-0" shape="rect" class="pimg" style="position:absolute;inset:0;pointer-events:none"></image-slot><span style="position:absolute;left:50%;bottom:-11px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;background:${INK};color:${BG};font-size:11px;font-weight:700;padding:3px 7px 3px 3px;white-space:nowrap"><b style="background:${BG};color:${INK};font:500 11px/1 'IBM Plex Mono',monospace;padding:3px 5px">${list.length}</b>スタジアムシティ</span></div></div>`}
+  clHTML(g,d){const G=window.MESHI.G;const tot=g.m.reduce((a,b)=>a+b.n,0);const gs=g.m.flatMap(x=>x.list||[x.s]).slice(0,3);return `<div class="mk${this.ign?' ign':''}" style="position:absolute;left:0;top:0;--d:${d}ms;cursor:pointer">${gs.map((s,i)=>`<div style="position:absolute;left:${-23+(i-1)*9}px;top:${-30+(i===1?-4:0)}px;width:46px;height:58px;transform:rotate(${(i-1)*9}deg);box-shadow:0 0 0 2px ${INK},0 8px 18px oklch(0 0 0/.55)">${this.tileHTML(s.g,i===gs.length-1?G[s.g].m:'',18)}<image-slot data-photo-id="p-${s.id}-0" shape="rect" class="pimg" style="position:absolute;inset:0;pointer-events:none"></image-slot></div>`).join('')}<span style="position:absolute;left:14px;top:-44px;min-width:30px;height:30px;border-radius:15px;padding:0 8px;display:flex;align-items:center;justify-content:center;background:${AMB};color:${BG};font:500 14px/1 'IBM Plex Mono',monospace;box-shadow:0 0 0 2px ${BG}">${tot}</span></div>`}
+  draw(){
+    if(!this.map)return;const L=window.L,{S,SC}=window.MESHI;
+    this.markers.forEach(m=>this.map.removeLayer(m));this.markers=[];
+    const vr=[...S].sort((a,b)=>+a.posts[0].v - +b.posts[0].v).map(s=>s.id);
+    const items=S.filter(s=>!s.b&&this.vis(s)).map(s=>({k:s.id,lat:s.lat,lng:s.lng,n:1,s}));
+    const bs=this.sc.filter(s=>this.vis(s));
+    if(bs.length)items.unshift({k:'sc',lat:SC.lat,lng:SC.lng,n:bs.length,b:true,list:bs});
+    const z=this.map.getZoom(),groups=[],sel=this.state.sel;
+    items.forEach(it=>{it.p=this.map.project([it.lat,it.lng],z);const isSel=sel===it.k||(it.b&&this.sc.some(s=>s.id===sel));const g=isSel?null:groups.find(g=>!g.sel&&Math.abs(g.p.x-it.p.x)<(it.b||g.b?90:52)&&Math.abs(g.p.y-it.p.y)<64);if(g){g.m.push(it);g.b=g.b||it.b}else groups.push({p:it.p,m:[it],b:it.b,sel:isSel})});
+    groups.forEach(g=>{
+      const d=this.ign?500+Math.min(...g.m.map(x=>x.b?0:vr.indexOf(x.k)))*70:0;
+      let mk;
+      if(g.m.length===1){const it=g.m[0];
+        if(it.b)mk=L.marker([SC.lat,SC.lng],{keyboard:false,title:"店舗の写真ピン（仮位置）",icon:L.divIcon({className:'',iconSize:[0,0],html:this.bldHTML(it.list,g.sel,d)}),zIndexOffset:g.sel?2000:500}).on('click',e=>{L.DomEvent.stop(e);this.openBuilding()});
+        else mk=L.marker([it.lat,it.lng],{keyboard:false,title:"店舗の写真ピン（仮位置）",icon:L.divIcon({className:'',iconSize:[0,0],html:this.pinHTML(it.s,g.sel,d)}),zIndexOffset:g.sel?2000:Math.round(it.p.y/10)}).on('click',e=>{L.DomEvent.stop(e);this.select(it.k)});
+      }else{const bb=L.latLngBounds(g.m.map(x=>[x.lat,x.lng]));
+        mk=L.marker(bb.getCenter(),{keyboard:false,title:"店舗の写真ピン（仮位置）",icon:L.divIcon({className:'',iconSize:[0,0],html:this.clHTML(g,d)}),zIndexOffset:800}).on('click',e=>{L.DomEvent.stop(e);this.map.flyToBounds(bb.pad(.8),{paddingTopLeft:[60,180],paddingBottomRight:[60,160],maxZoom:17,duration:.8})});}
+      mk.addTo(this.map);this.markers.push(mk);
+    });
+    this.count();
+  }
+  count(){if(!this.map)return;const b=this.map.getBounds();const n=window.MESHI.S.filter(s=>this.vis(s)&&b.contains([s.lat,s.lng])).length;if(n!==this.state.count)this.setState({count:n})}
+  openMap(after){
+    if(!this.map){this.setState({view:"map",listOpen:true});return;}
+    const first=this.state.view!=='map';
+    this.setState({view:'map'},()=>{
+      setTimeout(()=>{this.map.invalidateSize();if(first){const a=this.AREAS[this.state.area];if(a.b&&!this.state.sel)this.map.fitBounds(a.b,this.pad());this.ign=true;this.draw();setTimeout(()=>{this.ign=false},2600)}if(typeof after==='function')after()},first?650:0);
+    });
+  }
+  goIntro(){this.setState({view:'intro',sel:null},()=>this.draw())}
+  select(id){const s=window.MESHI.S.find(x=>x.id===id);this.setState({sel:id,pi:0},()=>{this.draw();if(this.map)this.focus(s.lat,s.lng)})}
+  openBuilding(){const {SC}=window.MESHI;this.setState({sel:'sc',pi:0},()=>{this.draw();if(this.map)this.focus(SC.lat,SC.lng)})}
+  focus(lat,lng){const z=Math.max(this.map.getZoom(),15);this.map.flyTo([lat,lng],z,{duration:.8})}
+  close(){this.setState({sel:null},()=>this.draw())}
+  order(){return window.MESHI.S.filter(s=>this.vis(s)).sort((a,b)=>+b.posts[0].v - +a.posts[0].v).map(s=>s.id)}
+  step(dir){const o=this.order();if(!o.length)return;let i=o.indexOf(this.state.sel);if(this.state.sel==='sc')i=o.indexOf(this.sc[0].id)-dir;i=(i+dir+o.length)%o.length;this.select(o[i])}
+  openFromIntro(id){this.openMap(()=>this.select(id))}
+  stText(s){return "営業時間を確認してください"}
+  renderVals(){
+    const st=this.state,M=window.MESHI,ratio=this.props.photoRatio==='1:1'?'1/1':'4/5';
+    const base={introDisplay:st.view==="intro"?"block":"none",q:st.q,listOpen:st.listOpen,listLabel:st.listOpen?"一覧を閉じる":"一覧で探す",rows:[],matching:0,empty:false,resultNote:"",error:st.error,hasError:!!st.error,retry:()=>location.reload(),search:e=>this.updateSearch(e.target.value),clearSearch:()=>this.resetFilters(),toggleList:()=>this.setState(s=>({listOpen:!s.listOpen})),ratio,total:0,oldestVol:'',latestVol:'',heroCols:[],recent:[],genres:[],chips:[],areas:[],count:st.count,motion:this.props.introMotion===false?'paused':'running',
+      mapClip:st.view==='map'?'inset(0 0 0 0)':'inset(100% 0 0 0)',mapPE:st.view==='map'?'auto':'none',mapRef:this.mapRef,
+      openMap:()=>this.openMap(),goIntro:()=>this.goIntro(),close:()=>this.close(),stop:e=>e.stopPropagation(),prev:()=>this.step(-1),next:()=>this.step(1),openBuilding:()=>this.openBuilding(),
+      toggleOpen:()=>this.setState(s=>({openOnly:!s.openOnly}),()=>this.draw()),openChip:{bg:'transparent',fg:INK,bd:LINE},
+      modalOpen:false,isStore:false,isBuilding:false,m:{photos:[],tags:[],posts:[]},bld:{items:[]},L:{}};
+    if(!M)return base;
+    const {G,S,SC}=M;
+    const matching=S.filter(s=>this.vis(s));base.matching=matching.length;base.empty=!matching.length;base.resultNote="表示範囲外のお店も含めています。";base.rows=[...matching].sort((a,b)=>+b.posts[0].v-+a.posts[0].v).map(s=>({name:s.name+(s.branch?" "+s.branch:""),area:s.area,vol:s.posts[0].v,open:()=>this.select(s.id)}));
+    const byVol=[...S].sort((a,b)=>+b.posts[0].v - +a.posts[0].v);
+    const item=s=>({id:s.id,pid:`p-${s.id}-0`,vol:s.posts[0].v,date:s.posts[0].d,name:s.name,area:s.b?'スタジアムシティ':s.area,tile:this.tile(s.g),k:G[s.g].m,kc:this.gc(s.g,.88,.1),open:()=>this.openFromIntro(s.id)});
+    const cols=[[],[],[]];byVol.forEach((s,i)=>cols[i%3].push(item(s)));
+    base.heroCols=cols.map((c,i)=>({items:[...c,...c],dur:[88,72,100][i]+'s',dir:i===1?'reverse':'normal',offset:['-40px','-180px','-90px'][i]}));
+    base.recent=byVol.slice(0,8).map(item);
+    base.total=S.length;base.oldestVol=byVol[byVol.length-1].posts[0].v;base.latestVol=byVol[0].posts[0].v;
+    base.genres=Object.entries(G).map(([k,g],i)=>({n:String(i+1).padStart(2,'0'),k:g.m,l:g.l,c:this.gc(k),count:S.filter(s=>s.g===k).length,open:()=>{this.setState({genre:k},()=>{this.openMap();this.draw()})}}));
+    base.chips=Object.entries(G).map(([k,g])=>{const on=st.genre===k;return {k:g.m,l:g.l,kc:on?BG:this.gc(k),bg:on?INK:'oklch(0.13 0.006 60/.7)',fg:on?BG:INK,bd:on?INK:LINE,toggle:()=>this.setState(s=>({genre:s.genre===k?null:k}),()=>this.draw())}});
+    base.openChip={bg:st.openOnly?INK:'oklch(0.13 0.006 60/.7)',fg:st.openOnly?BG:INK,bd:st.openOnly?INK:LINE};
+    base.areas=(this.AREAS||[]).map((a,i)=>({l:a.l,fw:st.area===i?700:400,fg:st.area===i?INK:SUB,bd:st.area===i?INK:'transparent',go:()=>{this.setState({area:i});const bb=a.b||window.L.latLngBounds(S.map(s=>[s.lat,s.lng]));this.map.flyToBounds(bb,{...this.pad(),duration:.9})}}));
+    const wide=st.w>=900;
+    base.L=wide?{pW:'min(1200px, calc(100vw - 64px))',pH:'min(820px, calc(100vh - 64px))',dir:'row',pOv:'hidden',lW:'50%',lH:'100%',rOv:'auto',ctPad:'36px 36px 8px',inH:'100%',inW:'auto'}:{pW:'100vw',pH:'100%',dir:'column',pOv:'auto',lW:'100%',lH:'auto',rOv:'visible',ctPad:'0',inH:'auto',inW:'100%'};
+    if(st.sel==='sc'){
+      const list=this.sc.filter(s=>this.vis(s));const f=list[0]||this.sc[0];
+      base.modalOpen=true;base.isBuilding=true;
+      base.m={tile:this.tile(f.g),k:'',kc:INK,mainId:'bld-sc',piLabel:'長崎スタジアムシティ',volLabel:'BUILDING',date:`${list.length} STORES`,photos:[],tags:[],posts:[]};
+      base.bld={name:SC.name,addr:SC.addr,n:list.length,items:list.map(s=>({id:s.id,pid:`p-${s.id}-0`,fl:s.fl||"フロアの記載なし",flc:s.fl?INK:SUB,name:s.name,k:G[s.g].m,kc:this.gc(s.g,.88,.1),tile:this.tile(s.g),st:this.stText(s),vol:s.posts[0].v,pr:!!s.pr,lim:!!s.lim,open:()=>this.select(s.id)}))};
+    }else if(st.sel){
+      const s=S.find(x=>x.id===st.sel);
+      const tags=[];if(s.lim)tags.push({t:'期間限定',bd:INK,bg:'transparent',fg:INK});if(s.payF==='cash')tags.push({t:'¥ 現金のみ',bd:WARN,bg:WARN,fg:BG});if(s.payF==='nocash')tags.push({t:s.pay==='キャッシュレス'||s.pay==='現金不可'?'現金不可':s.pay,bd:WARN,bg:'transparent',fg:WARN});
+      base.modalOpen=true;base.isStore=true;
+      base.m={tile:this.tile(s.g),k:G[s.g].m,kc:this.gc(s.g,.88,.1),gl:G[s.g].l,area:s.b?`長崎スタジアムシティ${s.fl?' '+s.fl:''}`:s.area,
+        mainId:`p-${s.id}-${st.pi}`,piLabel:"AI生成の仮画像",
+        photos:[0].map(i=>({id:`p-${s.id}-${i}`,n:i+1,ol:st.pi===i?INK:'transparent',op:st.pi===i?1:.55,pick:()=>this.setState({pi:i})})),
+        volLabel:`VOL.${s.posts[0].v}`,date:s.posts[0].d,name:s.name,branch:s.branch||'',pr:!!s.pr,lim:!!s.lim,inBuilding:!!s.b,bldN:this.sc.length,
+        stText:this.stText(s),stColor:SUB,stDot:'transparent',tags,
+        hoursOk:!s.hoursCheck,hoursCheck:!!s.hoursCheck,hours:s.hours||'',hoursNote:s.hoursNote||'',hoursRaw:s.hoursRaw,closed:s.closed||'',closedNA:!s.closed,
+        park:s.park,payCash:s.payF==='cash',payPlain:!!s.pay&&s.payF!=='cash',pay:s.pay||'',payNA:!s.pay,addr:s.addr,floorLine:s.b?`${SC.name}${s.fl?' '+s.fl:''}${s.flNote?'・'+s.flNote:''}`:'',
+        igOn:!!s.ig,igOff:!s.ig,igUrl:s.ig?`https://www.instagram.com/${s.ig}/`:'#',igLabel:s.igFacility?'施設公式':"店舗の公式情報",igOffText:s.igCheck?"公式情報を確認中":"公式アカウントの記載なし",igOffSub:s.igCheck?'記載が不明瞭':"投稿に記載なし",
+        postUrl:s.posts[0].u,routeUrl:'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(s.addrRaw),
+        multi:s.posts.length>1,postCount:s.posts.length,posts:s.posts.map(p=>({v:p.v,d:p.d,u:p.u,n:p.n||''}))};
+    }
+    return base;
+  }
+}
+</script>
+</body>
+</html>
