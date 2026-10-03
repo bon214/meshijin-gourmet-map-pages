@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/meshijin-gourmet-map-pages/vendor/react.production.min.js"></script>
+<script src="/meshijin-gourmet-map-pages/vendor/react-dom.production.min.js"></script>
+<script src="./support.js"></script>
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="strict-origin-when-cross-origin">
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>飯人グルメマップ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
+<link rel="stylesheet" href="/meshijin-gourmet-map-pages/vendor/leaflet.css">
+<script src="/meshijin-gourmet-map-pages/vendor/leaflet.js"></script>
+<script src="./data/stores.js"></script>
+<style>
+html,body{margin:0;padding:0;background:#FBF7EA;color:#1F1B17;font-family:'Noto Sans JP',sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:'palt' 1}
+*{box-sizing:border-box}
+a{color:#8A6B12;text-underline-offset:3px}
+a:hover{color:#5C4A14}
+button,input,select{font:inherit;color:inherit}
+.leaflet-container{font-family:'Noto Sans JP',sans-serif;background:#F1EBDA}
+</style>
+<style>
+.demo-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none}
+.demo-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,14,9,.55),transparent 40%,rgba(20,14,9,.82));pointer-events:none}
+.demo-badge{position:absolute;right:7px;top:7px;padding:2px 5px;border-radius:3px;background:rgba(25,19,13,.8);color:#fff;font:500 9px/1.4 system-ui,sans-serif;letter-spacing:.02em;white-space:nowrap;pointer-events:none}
+.demo-detail-badge{padding:4px 7px;border-radius:3px;background:rgba(25,19,13,.84);color:#fff!important;font-size:11px!important}
+.demo-volume{position:relative;color:#fff;text-shadow:0 1px 3px #000;font-weight:700;font-size:17px;line-height:1}
+.demo-photo-card{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.demo-genre-card .demo-badge{top:auto;bottom:7px}
+</style></helmet>
+
+<div style="min-height:100dvh;height:{{ rootH }};overflow:{{ rootOv }};display:flex;flex-direction:column;background:#FBF7EA"><aside style="flex-shrink:0;position:relative;z-index:2000;background:#fff8e7;color:#40342b;padding:10px 16px;font:13px/1.6 sans-serif;text-align:center">案2のデザイン比較版。店舗情報と位置は確認前です。画像はAI生成の仮画像です。 <a href="/meshijin-gourmet-map-pages/" style="color:inherit;text-decoration:underline">案を比較する</a></aside>
+
+<header style="position:sticky;top:0;z-index:1500;flex-shrink:0;height:60px;background:rgba(251,247,234,.95);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid #EAE2CB;display:flex;align-items:center;gap:20px;padding:0 clamp(16px,3vw,32px)">
+  <a href="#/" style="display:flex;align-items:baseline;gap:8px;text-decoration:none;color:#1F1B17">
+    <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:22px;font-weight:700;letter-spacing:.04em">飯人</span>
+    <span style="font-size:12px;letter-spacing:.12em;color:#68615A">グルメマップ</span>
+  </a>
+  <nav style="margin-left:auto;display:flex;align-items:center;gap:4px">
+    <sc-if value="{{ topWide }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ toAreas }}" style="height:40px;padding:0 12px;border:0;background:none;border-radius:4px;font-size:14px;cursor:pointer" style-hover="background:#F4EAC6">エリアで探す</button>
+      <button onClick="{{ toGenres }}" style="height:40px;padding:0 12px;border:0;background:none;border-radius:4px;font-size:14px;cursor:pointer" style-hover="background:#F4EAC6">ジャンルで探す</button>
+      <button onClick="{{ toAbout }}" style="height:40px;padding:0 12px;border:0;background:none;border-radius:4px;font-size:14px;cursor:pointer" style-hover="background:#F4EAC6">飯人について</button>
+      <a href="#/map" style="margin-left:8px;height:40px;padding:0 12px 0 16px;background:#8A6B12;color:#FFFFFF;border-radius:4px;font-size:14px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px" style-hover="background:#735910;color:#FFFFFF">地図で探す<span style="font-family:'Material Symbols Rounded';font-size:20px;line-height:1">east</span></a>
+    </sc-if>
+    <sc-if value="{{ topNarrow }}" hint-placeholder-val="{{ false }}">
+      <a href="#/map" aria-label="地図で探す" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#1F1B17;text-decoration:none"><span style="font-family:'Material Symbols Rounded';font-size:24px;line-height:1">map</span></a>
+    </sc-if>
+    <sc-if value="{{ mapWide }}" hint-placeholder-val="{{ false }}">
+      <a href="#/" style="height:40px;padding:0 12px;border-radius:4px;font-size:14px;color:#1F1B17;text-decoration:none;display:flex;align-items:center" style-hover="background:#F4EAC6;color:#1F1B17">ホーム</a>
+      <a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener" style="height:40px;padding:0 12px;border-radius:4px;font-size:14px;color:#1F1B17;text-decoration:none;display:flex;align-items:center;gap:4px" style-hover="background:#F4EAC6;color:#1F1B17">@meshijin_food<span style="font-family:'Material Symbols Rounded';font-size:16px;line-height:1">north_east</span></a>
+    </sc-if>
+  </nav>
+</header>
+
+<sc-if value="{{ isTop }}" hint-placeholder-val="{{ true }}">
+<main data-screen-label="01 Top" style="display:flex;flex-direction:column;padding-bottom:{{ topPadB }}">
+
+  <section style="max-width:1280px;width:100%;margin:0 auto;padding:20px clamp(16px,3vw,32px) 0">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #1F1B17;font-size:12px;letter-spacing:.06em">
+      <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:15px;font-weight:500;letter-spacing:0">Nagasaki Food Atlas</span>
+      <span>No.{{ latestVol }} ─ {{ latestDate }}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:clamp(32px,5vw,72px);align-items:center;padding:clamp(32px,6vw,80px) 0 clamp(48px,6vw,96px)">
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <span style="display:flex;align-items:center;gap:10px;font-size:13px;color:#68615A"><span style="background:#1F1B17;color:#FBF7EA;font-size:12px;font-weight:700;letter-spacing:.14em;padding:3px 6px 3px 8px">NEW</span>長崎のグルメと映像美・飯人</span>
+        <h1 style="margin:0;font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:clamp(38px,5.6vw,76px);line-height:1.3;letter-spacing:.01em">飯人の紹介店を、<br>地図で探す。</h1>
+        <p style="margin:0;font-size:16px;line-height:2;max-width:30em;color:#48423C;text-wrap:pretty">飯人がInstagramで紹介したお店を、地図や一覧から探せます。営業時間、定休日、駐車場、支払い方法をお店ごとにまとめました。</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a href="#/map" style="height:56px;padding:0 18px 0 22px;min-width:220px;background:#8A6B12;color:#FFFFFF;border-radius:4px;font-size:16px;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:16px" style-hover="background:#735910;color:#FFFFFF">地図で探す<span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1">east</span></a>
+          <button onClick="{{ locate }}" style="height:56px;padding:0 20px 0 16px;background:transparent;border:1px solid #1F1B17;border-radius:4px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;cursor:pointer" style-hover="background:#F4EAC6"><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">near_me</span>近くのお店を探す</button>
+        </div>
+        <span style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#68615A"><span><strong style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:20px;font-weight:700;color:#1F1B17;margin-right:2px">{{ storeCount }}</strong>店</span><span><strong style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:20px;font-weight:700;color:#1F1B17;margin-right:2px">8</strong>エリア</span><span style="align-self:center">情報確認日 {{ checkedAt }}</span></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+          <sc-for list="{{ latest }}" as="c" hint-placeholder-count="6">
+            <button class="demo-photo-card" onClick="{{ c.open }}" style="position:relative;aspect-ratio:4/5;border:0;border-radius:4px;background:{{ c.tint }};overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;padding:10px;text-align:left;cursor:pointer;transition:transform .2s" style-hover="transform:translateY(-3px)"><img class="demo-image" src="{{ c.imageUrl }}" alt="AIで生成した料理の仮画像" loading="lazy" decoding="async"><span class="demo-shade" aria-hidden="true"></span><span class="demo-badge">仮画像</span>
+
+              <span style="position:relative;font-family:'Zen Kaku Gothic New',sans-serif;font-size:clamp(22px,2.4vw,30px);font-weight:700;line-height:1;color:#fff">{{ c.vol }}</span>
+              <span style="position:relative;display:flex;flex-direction:column;gap:2px"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:14px;font-weight:700;line-height:1.3;color:#fff">{{ c.name }}</span><span style="font-size:11px;color:#fff">{{ c.area }}</span></span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#68615A"><span>最近の紹介店</span><span>AI生成の仮画像</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section ref="{{ areasRef }}" style="max-width:1280px;width:100%;margin:0 auto;padding:0 clamp(16px,3vw,32px) clamp(56px,7vw,96px)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding-top:10px;border-top:1.5px solid #1F1B17">
+      <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:clamp(24px,3vw,34px);font-weight:500">Contents</span><span style="font-size:13px;letter-spacing:.1em">エリアで探す</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:0 56px;margin-top:8px">
+      <sc-for list="{{ areaRows }}" as="a" hint-placeholder-count="8">
+        <a href="{{ a.href }}" style="display:flex;align-items:center;gap:14px;min-height:60px;border-bottom:1px solid #EAE2CB;color:#1F1B17;text-decoration:none" style-hover="color:#8A6B12">
+          <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:18px;width:22px;color:#8A6B12">{{ a.no }}</span>
+          <span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:18px;font-weight:700">{{ a.label }}</span><span style="font-size:12px;color:#68615A">{{ a.sub }}</span></span>
+          <span style="flex:1;border-bottom:2px dotted #CFC3A0;transform:translateY(6px);min-width:16px"></span>
+          <span style="font-size:13px;color:#48423C">{{ a.count }}店</span>
+          <span style="font-family:'Material Symbols Rounded';font-size:20px;line-height:1">east</span>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+
+  <section ref="{{ genresRef }}" style="max-width:1280px;width:100%;margin:0 auto;padding:0 clamp(16px,3vw,32px) clamp(56px,7vw,96px)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding-top:10px;border-top:1.5px solid #1F1B17">
+      <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:clamp(24px,3vw,34px);font-weight:500">Genre</span><span style="font-size:13px;letter-spacing:.1em">ジャンルで探す</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:20px">
+      <sc-for list="{{ genreTiles }}" as="g" hint-placeholder-count="7">
+        <a class="demo-photo-card demo-genre-card" href="{{ g.href }}" style="position:relative;height:120px;border-radius:4px;background:{{ g.tint }};overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:12px 14px;color:#fff;text-decoration:none;transition:transform .2s" style-hover="transform:translateY(-3px);color:#fff"><img class="demo-image" src="{{ g.imageUrl }}" alt="AIで生成した料理の仮画像" loading="lazy" decoding="async"><span class="demo-shade" aria-hidden="true"></span><span class="demo-badge">仮画像</span>
+
+          <span style="position:relative;font-family:'Zen Kaku Gothic New',sans-serif;font-size:16px;font-weight:700;line-height:1.35">{{ g.label }}</span>
+          <span style="position:relative;font-size:13px;font-weight:700;color:#fff">{{ g.count }}店</span>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+
+  <section ref="{{ aboutRef }}" style="max-width:1280px;width:100%;margin:0 auto;padding:0 clamp(16px,3vw,32px) clamp(56px,7vw,96px)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;padding-top:10px;border-top:1.5px solid #1F1B17">
+      <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:clamp(24px,3vw,34px);font-weight:500">About</span><span style="font-size:13px;letter-spacing:.1em">飯人について</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px 56px;margin-top:24px;align-items:start">
+      <div style="display:flex;gap:16px;align-items:center">
+        <span style="width:88px;height:88px;border-radius:50%;background:#F4EAC6;border:1px dashed #CFC3A0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#68615A;flex-shrink:0;position:relative;overflow:hidden;border-style:solid"><img src="/meshijin-gourmet-map-pages/assets/generated/about-food-photography.png" alt="AIで生成した料理撮影の仮画像" style="width:100%;height:100%;object-fit:cover" loading="lazy"><span class="demo-badge" style="top:auto;bottom:4px;right:16px;font-size:8px">仮画像</span></span>
+        <span style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:24px;font-weight:700">飯人</span><a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener" style="font-size:14px">@meshijin_food</a><span style="font-size:13px;color:#68615A">長崎のグルメと映像美</span></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <span style="padding:16px;border:1px dashed #CFC3A0;font-size:13px;line-height:1.8;color:#68615A">飯人のプロフィールを120字程度で掲載予定です。</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #EAE2CB;border-bottom:1px solid #EAE2CB">
+          <span style="padding:12px 0;display:flex;flex-direction:column"><span style="font-size:12px;color:#68615A">フォロワー</span><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:28px;font-weight:700;line-height:1.2">24,544</span></span>
+          <span style="padding:12px 0 12px 16px;border-left:1px solid #EAE2CB;display:flex;flex-direction:column"><span style="font-size:12px;color:#68615A">投稿</span><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:28px;font-weight:700;line-height:1.2">272</span></span>
+        </div>
+        <span style="font-size:12px;color:#68615A">2026年9月時点</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#1F1B17;color:#FBF7EA">
+    <div style="max-width:1280px;margin:0 auto;padding:clamp(40px,6vw,72px) clamp(16px,3vw,32px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px 56px;align-items:end">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:16px;color:#E9C75A">For Business</span>
+        <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:clamp(24px,3vw,32px);font-weight:700">撮影・PRの相談</span>
+        <span style="font-size:14px;line-height:1.9;color:#E6E0D2">カフェや飲食店の撮影・PRを承っています。Instagramのメッセージでご相談ください。</span>
+      </div>
+      <a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener" style="height:56px;border-bottom:1px solid #8E8574;display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:700;color:#FBF7EA;text-decoration:none" style-hover="color:#E9C75A">Instagramで問い合わせる<span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1">north_east</span></a>
+    </div>
+  </section>
+
+  <footer style="max-width:1280px;width:100%;margin:0 auto;padding:28px clamp(16px,3vw,32px) 40px;display:flex;flex-direction:column;gap:12px;font-size:12px;line-height:1.8;color:#68615A">
+    <span>店舗情報は紹介した投稿をもとに整理しています。最新の営業時間や定休日は、お店の公式アカウントで確認してください。地図上の位置は町域のおおよその場所で、ジャンルの分類は仮のものです。</span>
+    <span style="display:flex;gap:20px;flex-wrap:wrap;color:#1F1B17"><span>PR表記について</span><a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener" style="color:#1F1B17">情報の誤りを報告する</a></span>
+    <span>料理の画像はAIで生成した仮画像です。実際のお店や料理を撮影したものではありません。<br>© 飯人</span>
+  </footer>
+
+  <sc-if value="{{ topNarrow }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:0;right:0;bottom:0;z-index:1400;padding:10px 16px calc(14px + env(safe-area-inset-bottom));background:rgba(251,247,234,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid #EAE2CB;display:flex;gap:8px">
+      <a href="#/map" style="flex:1;height:56px;background:#8A6B12;color:#FFFFFF;border-radius:4px;font-size:16px;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px 0 20px" style-hover="background:#735910;color:#FFFFFF">地図で探す<span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1">east</span></a>
+      <button onClick="{{ locate }}" aria-label="近くのお店を探す" style="width:56px;height:56px;border:1px solid #1F1B17;background:transparent;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">near_me</span></button>
+    </div>
+  </sc-if>
+</main>
+</sc-if>
+
+<sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="02 Map" style="flex:1;min-height:0;position:relative;display:flex">
+
+  <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+  <aside style="width:400px;flex-shrink:0;display:flex;flex-direction:column;min-height:0;border-right:1px solid #E3D9BE;background:#FBF7EA">
+    <div style="padding:16px 20px 14px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid #EAE2CB">
+      <label style="height:44px;border-radius:4px;background:#F7EFD3;display:flex;align-items:center;gap:8px;padding:0 6px 0 12px">
+        <span style="font-family:'Material Symbols Rounded';font-size:20px;line-height:1;color:#68615A">search</span>
+        <input value="{{ q }}" onChange="{{ onSearch }}" placeholder="店名・住所・Vol.で検索" style="flex:1;min-width:0;border:0;background:transparent;font-size:15px;outline:none">
+        <sc-if value="{{ hasQ }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearQ }}" aria-label="検索をクリア" style="width:32px;height:32px;border:0;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">close</span></button></sc-if>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:12px;color:#68615A">エリア</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <sc-for list="{{ areaChips }}" as="c" hint-placeholder-count="9">
+            <button onClick="{{ c.click }}" style="height:34px;padding:0 12px;border-radius:4px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:13px;font-weight:{{ c.fw }};cursor:pointer;white-space:nowrap">{{ c.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:12px;color:#68615A">ジャンル</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <sc-for list="{{ genreChips }}" as="c" hint-placeholder-count="8">
+            <button onClick="{{ c.click }}" style="height:34px;padding:0 12px 0 9px;border-radius:4px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:13px;font-weight:{{ c.fw }};cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px"><span style="font-family:'Material Symbols Rounded';font-size:16px;line-height:1;font-variation-settings:'FILL' 1;color:{{ c.ic }}">{{ c.icon }}</span>{{ c.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="3">
+          <button onClick="{{ t.click }}" style="height:34px;padding:0 12px 0 9px;border-radius:4px;border:1px solid {{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px"><span style="font-family:'Material Symbols Rounded';font-size:17px;line-height:1">{{ t.icon }}</span>{{ t.label }}</button>
+        </sc-for>
+        <sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearFilters }}" style="height:34px;padding:0 8px;border:0;background:none;color:#8A6B12;font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:3px">条件をリセット</button></sc-if>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;border-bottom:1.5px solid #1F1B17">
+      <span style="display:flex;align-items:baseline;gap:4px"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:24px;font-weight:700;line-height:1">{{ count }}</span><span style="font-size:13px">店</span></span>
+      <span style="display:flex;border:1px solid #1F1B17;border-radius:4px;overflow:hidden;height:32px">
+        <button onClick="{{ sortNew }}" style="border:0;padding:0 12px;font-size:12px;font-weight:700;cursor:pointer;background:{{ sortNewBg }};color:{{ sortNewFg }}">新着順</button>
+        <button onClick="{{ sortNear }}" style="border:0;padding:0 12px;font-size:12px;font-weight:700;cursor:pointer;background:{{ sortNearBg }};color:{{ sortNearFg }}">近い順</button>
+      </span>
+    </div>
+    <div ref="{{ listRef }}" style="flex:1;overflow-y:auto">
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+        <button data-id="{{ r.id }}" onClick="{{ r.open }}" onMouseEnter="{{ r.hover }}" style="width:100%;border:0;border-bottom:1px solid #EAE2CB;background:{{ r.rowBg }};padding:14px 20px;display:flex;gap:14px;align-items:stretch;text-align:left;cursor:pointer" style-hover="background:#F7EFD3">
+          <span style="position:relative;width:64px;height:80px;flex-shrink:0;border-radius:4px;background:{{ r.tint }};overflow:hidden;display:flex;align-items:flex-end;padding:5px 6px"><img class="demo-image" src="{{ r.imageUrl }}" alt="AIで生成した料理の仮画像" loading="lazy" decoding="async"><span class="demo-shade" aria-hidden="true"></span><span class="demo-badge">仮画像</span><span class="demo-volume">{{ r.vol }}</span></span>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#68615A"><span style="display:inline-flex;align-items:center;gap:2px;font-weight:700;color:{{ r.deep }}"><span style="font-family:'Material Symbols Rounded';font-size:14px;line-height:1;font-variation-settings:'FILL' 1">{{ r.icon }}</span>{{ r.genre }}</span><span>｜</span><span>{{ r.area }}</span><span style="margin-left:auto">{{ r.dist }}</span></span>
+            <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:17px;font-weight:700;line-height:1.35">{{ r.name }}<span style="font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:400;color:#68615A;margin-left:6px">{{ r.branch }}</span></span>
+            <span style="margin-top:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px">
+              <span style="display:inline-flex;align-items:center;gap:4px;font-weight:700;color:{{ r.stColor }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.stDot }}"></span>{{ r.status }}</span>
+              <span style="color:#68615A">{{ r.statusNote }}</span>
+              <sc-if value="{{ r.cashOnly }}" hint-placeholder-val="{{ false }}"><span style="padding:0 5px;background:oklch(0.93 0.07 85);color:oklch(0.40 0.10 60);font-weight:700">現金のみ</span></sc-if>
+              <sc-if value="{{ r.temporary }}" hint-placeholder-val="{{ false }}"><span style="padding:0 5px;background:#1F1B17;color:#FFFFFF;font-weight:700">期間限定</span></sc-if>
+              <sc-if value="{{ r.pr }}" hint-placeholder-val="{{ false }}"><span style="padding:0 4px;border:1px solid #1F1B17;font-size:11px;font-weight:700">PR</span></sc-if>
+            </span>
+          </span>
+        </button>
+      </sc-for>
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:40px 20px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;font-size:14px;color:#48423C">条件に合うお店が見つかりませんでした。<button onClick="{{ clearFilters }}" style="height:40px;padding:0 14px;border:1px solid #1F1B17;background:transparent;border-radius:4px;font-weight:700;cursor:pointer">条件をリセット</button></div>
+      </sc-if>
+      <div style="padding:18px 20px 28px;font-size:12px;line-height:1.8;color:#68615A">営業状況は投稿の営業時間と日本時間をもとに表示しています。地図上の位置は町域のおおよその場所です。</div>
+    </div>
+  </aside>
+  </sc-if>
+
+  <div style="flex:1;min-width:0;position:relative">
+    <div ref="{{ mapEl }}" style="position:absolute;inset:0;background:#F1EBDA"></div>
+
+    <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ locate }}" style="position:absolute;z-index:1100;right:16px;top:16px;height:44px;padding:0 14px 0 10px;border:0;border-radius:4px;background:#FFFFFF;box-shadow:0 2px 8px rgba(31,27,23,.18);display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#F7EFD3"><span style="font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 1;color:#8A6B12">near_me</span>現在地</button>
+    </sc-if>
+
+    <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:1100;display:flex;flex-direction:column;pointer-events:none">
+        <div style="pointer-events:auto;background:#FFFFFF;border-bottom:1px solid #EAE2CB;box-shadow:0 2px 10px rgba(31,27,23,.06);padding:10px 0;display:flex;flex-direction:column;gap:8px">
+          <div style="padding:0 12px">
+            <label style="height:44px;border-radius:4px;background:#F7EFD3;display:flex;align-items:center;gap:8px;padding:0 4px 0 12px">
+              <span style="font-family:'Material Symbols Rounded';font-size:20px;line-height:1;color:#68615A">search</span>
+              <input value="{{ q }}" onChange="{{ onSearch }}" placeholder="店名・住所・Vol.で検索" style="flex:1;min-width:0;border:0;background:transparent;font-size:16px;outline:none">
+              <sc-if value="{{ hasQ }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearQ }}" aria-label="検索をクリア" style="width:36px;height:36px;border:0;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">close</span></button></sc-if>
+            </label>
+          </div>
+          <div style="display:flex;gap:6px;padding:0 12px;overflow-x:auto;scrollbar-width:none">
+            <sc-for list="{{ areaChips }}" as="c" hint-placeholder-count="9">
+              <button onClick="{{ c.click }}" style="flex-shrink:0;height:40px;padding:0 13px;border-radius:4px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-size:13px;font-weight:{{ c.fw }};cursor:pointer;white-space:nowrap">{{ c.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:0 12px">
+            <div style="flex:1;min-width:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none">
+              <label style="flex-shrink:0;position:relative;height:40px;border-radius:4px;border:1px solid {{ genreSelBd }};background:{{ genreSelBg }};color:{{ genreSelFg }};display:flex;align-items:center;padding:0 4px 0 12px;font-size:13px;font-weight:700;gap:2px">
+                <span>{{ genreSelLabel }}</span><span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">arrow_drop_down</span>
+                <select value="{{ genreVal }}" onChange="{{ onGenreSelect }}" aria-label="ジャンル" style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:16px">
+                  <sc-for list="{{ genreOptions }}" as="o" hint-placeholder-count="8"><option value="{{ o.id }}">{{ o.label }}</option></sc-for>
+                </select>
+              </label>
+              <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="3">
+                <button onClick="{{ t.click }}" style="flex-shrink:0;height:40px;padding:0 11px 0 8px;border-radius:4px;border:1px solid {{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap"><span style="font-family:'Material Symbols Rounded';font-size:17px;line-height:1">{{ t.icon }}</span>{{ t.label }}</button>
+              </sc-for>
+            </div>
+            <span style="flex-shrink:0;display:flex;border:1px solid #1F1B17;border-radius:4px;overflow:hidden;height:40px">
+              <button onClick="{{ showMapMode }}" aria-label="地図" style="width:42px;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:{{ mapSegBg }};color:{{ mapSegFg }}"><span style="font-family:'Material Symbols Rounded';font-size:19px;line-height:1;font-variation-settings:'FILL' 1">map</span></button>
+              <button onClick="{{ showListMode }}" aria-label="一覧" style="width:42px;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:{{ listSegBg }};color:{{ listSegFg }}"><span style="font-family:'Material Symbols Rounded';font-size:19px;line-height:1">view_agenda</span></button>
+            </span>
+          </div>
+        </div>
+
+        <sc-if value="{{ listMode }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1;min-height:0;overflow-y:auto;background:#FBF7EA;pointer-events:auto">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-bottom:1.5px solid #1F1B17">
+              <span style="display:flex;align-items:baseline;gap:4px"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:22px;font-weight:700;line-height:1">{{ count }}</span><span style="font-size:13px">店</span></span>
+              <span style="display:flex;border:1px solid #1F1B17;border-radius:4px;overflow:hidden;height:36px">
+                <button onClick="{{ sortNew }}" style="border:0;padding:0 12px;font-size:12px;font-weight:700;cursor:pointer;background:{{ sortNewBg }};color:{{ sortNewFg }}">新着順</button>
+                <button onClick="{{ sortNear }}" style="border:0;padding:0 12px;font-size:12px;font-weight:700;cursor:pointer;background:{{ sortNearBg }};color:{{ sortNearFg }}">近い順</button>
+              </span>
+            </div>
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+              <button onClick="{{ r.open }}" style="width:100%;border:0;border-bottom:1px solid #EAE2CB;background:transparent;padding:14px 16px;display:flex;gap:14px;align-items:stretch;text-align:left;cursor:pointer">
+                <span style="position:relative;width:64px;height:80px;flex-shrink:0;border-radius:4px;background:{{ r.tint }};overflow:hidden;display:flex;align-items:flex-end;padding:5px 6px"><img class="demo-image" src="{{ r.imageUrl }}" alt="AIで生成した料理の仮画像" loading="lazy" decoding="async"><span class="demo-shade" aria-hidden="true"></span><span class="demo-badge">仮画像</span><span class="demo-volume">{{ r.vol }}</span></span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#68615A"><span style="display:inline-flex;align-items:center;gap:2px;font-weight:700;color:{{ r.deep }}"><span style="font-family:'Material Symbols Rounded';font-size:14px;line-height:1;font-variation-settings:'FILL' 1">{{ r.icon }}</span>{{ r.genre }}</span><span>｜</span><span>{{ r.area }}</span><span style="margin-left:auto">{{ r.dist }}</span></span>
+                  <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:17px;font-weight:700;line-height:1.35">{{ r.name }}<span style="font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:400;color:#68615A;margin-left:6px">{{ r.branch }}</span></span>
+                  <span style="margin-top:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px">
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-weight:700;color:{{ r.stColor }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.stDot }}"></span>{{ r.status }}</span>
+                    <span style="color:#68615A">{{ r.statusNote }}</span>
+                    <sc-if value="{{ r.cashOnly }}" hint-placeholder-val="{{ false }}"><span style="padding:0 5px;background:oklch(0.93 0.07 85);color:oklch(0.40 0.10 60);font-weight:700">現金のみ</span></sc-if>
+                    <sc-if value="{{ r.temporary }}" hint-placeholder-val="{{ false }}"><span style="padding:0 5px;background:#1F1B17;color:#FFFFFF;font-weight:700">期間限定</span></sc-if>
+                    <sc-if value="{{ r.pr }}" hint-placeholder-val="{{ false }}"><span style="padding:0 4px;border:1px solid #1F1B17;font-size:11px;font-weight:700">PR</span></sc-if>
+                  </span>
+                </span>
+              </button>
+            </sc-for>
+            <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:40px 16px;display:flex;flex-direction:column;gap:12px;align-items:flex-start;font-size:14px;color:#48423C">条件に合うお店が見つかりませんでした。<button onClick="{{ clearFilters }}" style="height:44px;padding:0 16px;border:1px solid #1F1B17;background:transparent;border-radius:4px;font-weight:700;cursor:pointer">条件をリセット</button></div>
+            </sc-if>
+            <div style="padding:18px 16px 32px;font-size:12px;line-height:1.8;color:#68615A">営業状況は投稿の営業時間と日本時間をもとに表示しています。地図上の位置は町域のおおよその場所です。</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ mapMode }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1"></div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:22px">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:0 14px">
+              <span style="pointer-events:auto;display:flex;align-items:baseline;gap:5px;background:rgba(255,255,255,.95);padding:6px 10px;border-radius:4px;box-shadow:0 1px 4px rgba(31,27,23,.12)"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:18px;font-weight:700;line-height:1">{{ count }}</span><span style="font-size:12px">店・{{ sortLabel }}</span></span>
+              <button onClick="{{ locate }}" aria-label="現在地" style="pointer-events:auto;width:44px;height:44px;border:0;border-radius:4px;background:#FFFFFF;box-shadow:0 2px 6px rgba(31,27,23,.18);display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-family:'Material Symbols Rounded';font-size:20px;line-height:1;font-variation-settings:'FILL' 1;color:#8A6B12">near_me</span></button>
+            </div>
+            <div ref="{{ carRef }}" style="position:relative;pointer-events:auto;display:flex;gap:10px;padding:0 14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none">
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="3">
+                <button data-id="{{ r.id }}" onClick="{{ r.open }}" style="flex-shrink:0;width:min(300px,80vw);scroll-snap-align:center;background:#FFFFFF;border:0;border-radius:4px;box-shadow:{{ r.ring }};display:flex;gap:12px;padding:10px;text-align:left;cursor:pointer">
+                  <span style="position:relative;width:76px;height:96px;flex-shrink:0;border-radius:4px;background:{{ r.tint }};overflow:hidden;display:flex;align-items:flex-end;padding:6px"><img class="demo-image" src="{{ r.imageUrl }}" alt="AIで生成した料理の仮画像" loading="lazy" decoding="async"><span class="demo-shade" aria-hidden="true"></span><span class="demo-badge">仮画像</span><span class="demo-volume">{{ r.vol }}</span></span>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                    <span style="font-size:12px;color:{{ r.deep }};font-weight:700;display:flex;align-items:center;gap:2px"><span style="font-family:'Material Symbols Rounded';font-size:14px;line-height:1;font-variation-settings:'FILL' 1">{{ r.icon }}</span>{{ r.genre }}</span>
+                    <span style="display:flex;flex-direction:column;line-height:1.3"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span><span style="font-size:12px;color:#68615A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.branch }} {{ r.area }}</span></span>
+                    <span style="margin-top:auto;display:flex;align-items:center;gap:8px;font-size:12px;white-space:nowrap;overflow:hidden"><span style="display:flex;align-items:center;gap:4px;font-weight:700;color:{{ r.stColor }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.stDot }}"></span>{{ r.status }}</span><span style="color:#68615A">{{ r.statusNote }}</span><sc-if value="{{ r.cashOnly }}" hint-placeholder-val="{{ false }}"><span style="padding:0 5px;background:oklch(0.93 0.07 85);color:oklch(0.40 0.10 60);font-weight:700">現金のみ</span></sc-if></span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ bldgOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;z-index:1150;left:{{ bLeft }};right:{{ bRight }};top:{{ bTop }};width:{{ bW }};background:#FFFFFF;border-radius:4px;box-shadow:0 0 0 1px #1F1B17,0 18px 40px rgba(31,27,23,.3);padding:12px 16px 4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid #1F1B17"><span style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:18px;font-weight:700">{{ b.name }}</span><span style="font-size:12px;color:#68615A">{{ b.count }}店・フロア順</span></span><button onClick="{{ closeBldg }}" aria-label="閉じる" style="width:40px;height:40px;border:0;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-family:'Material Symbols Rounded';font-size:20px;line-height:1">close</span></button></div>
+        <sc-for list="{{ b.items }}" as="i" hint-placeholder-count="5">
+          <button onClick="{{ i.open }}" style="width:100%;border:0;background:transparent;border-bottom:1px solid #EEE7D3;display:flex;align-items:center;gap:12px;min-height:46px;text-align:left;cursor:pointer;padding:0" style-hover="background:#F7EFD3">
+            <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:16px;font-weight:700;width:36px">{{ i.floor }}</span>
+            <span style="flex:1;font-size:14px;font-weight:700">{{ i.name }}</span>
+            <sc-if value="{{ i.temporary }}" hint-placeholder-val="{{ false }}"><span style="padding:1px 6px;background:#1F1B17;color:#FFFFFF;font-size:11px;font-weight:700">期間限定</span></sc-if>
+            <sc-if value="{{ i.pr }}" hint-placeholder-val="{{ false }}"><span style="padding:0 5px;border:1px solid #1F1B17;font-size:11px;font-weight:700">PR</span></sc-if>
+            <span style="font-family:'Material Symbols Rounded';font-size:18px;line-height:1">east</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ hasDetail }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeDetail }}" style="position:absolute;inset:0;z-index:1250;background:rgba(31,27,23,.45)"></div></sc-if>
+    <div ref="{{ detailRef }}" data-screen-label="03 Store" style="position:absolute;z-index:1300;left:0;bottom:0;top:{{ dTop }};width:{{ dW }};background:#FFFFFF;display:flex;flex-direction:column;box-shadow:{{ dShadow }};border-radius:{{ dRadius }};overflow:hidden">
+      <div style="flex-shrink:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 8px;border-bottom:1px solid #EAE2CB">
+        <span style="display:flex;align-items:center">
+          <button onClick="{{ d.prev }}" aria-label="前のお店" style="width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px" style-hover="background:#F7EFD3"><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1">chevron_left</span></button>
+          <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:14px;padding:0 4px">{{ d.idx }} <span style="color:#68615A">/ {{ d.total }}</span></span>
+          <button onClick="{{ d.next }}" aria-label="次のお店" style="width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px" style-hover="background:#F7EFD3"><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1">chevron_right</span></button>
+        </span>
+        <button onClick="{{ closeDetail }}" aria-label="閉じる" style="width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="width:36px;height:36px;border-radius:50%;background:#F7EFD3;display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Rounded';font-size:20px;line-height:1">close</span></span></button>
+      </div>
+      <div ref="{{ detailBodyRef }}" style="flex:1;overflow-y:auto">
+        <div style="position:relative;height:300px;background:{{ d.tint }};overflow:hidden"><img class="demo-image" src="{{ d.imageUrl }}" alt="AIで生成した料理の仮画像" loading="lazy" decoding="async">
+
+          <span style="position:absolute;left:16px;top:14px;display:flex;gap:6px;align-items:center"><sc-if value="{{ d.pr }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 7px;background:#FFFFFF;border:1px solid #1F1B17;font-size:12px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center">PR</span></sc-if><span class="demo-detail-badge" style="font-size:12px;color:{{ d.deep }};font-weight:700;letter-spacing:.06em">AI生成・仮画像</span></span>
+          <span style="position:absolute;left:12px;bottom:12px;background:#FFFFFF;border-radius:4px;padding:10px 14px 8px 12px;box-shadow:0 4px 12px rgba(31,27,23,.12);display:flex;align-items:baseline;gap:6px"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:15px;font-weight:500">{{ d.volPrefix }}</span><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:42px;font-weight:700;line-height:.9;color:#8A6B12">{{ d.vol }}</span></span>
+        </div>
+        <div style="padding:16px 20px 0;display:flex;flex-direction:column;gap:8px">
+          <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:#68615A"><span style="display:inline-flex;align-items:center;gap:3px;color:{{ d.deep }};font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:15px;line-height:1;font-variation-settings:'FILL' 1">{{ d.icon }}</span>{{ d.genre }}</span><span>｜</span><span>{{ d.area }}</span><span style="margin-left:auto">紹介{{ d.count }}回</span></span>
+          <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:30px;font-weight:700;line-height:1.3">{{ d.name }}</span><sc-if value="{{ d.temporary }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 7px;background:#1F1B17;color:#FFFFFF;font-size:12px;font-weight:700;display:flex;align-items:center">期間限定</span></sc-if></span>
+          <sc-if value="{{ d.hasBranch }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#68615A;margin-top:-4px">{{ d.branch }}</span></sc-if>
+        </div>
+        <div style="margin:14px 20px 0;padding:11px 0;border-top:1px solid #1F1B17;border-bottom:1px solid #EAE2CB;display:flex;align-items:center;gap:8px;font-size:13px">
+          <span style="display:inline-flex;align-items:center;gap:5px;font-weight:700;color:{{ d.stColor }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ d.stDot }}"></span>{{ d.status }}</span><span>{{ d.statusNote }}</span>
+        </div>
+        <div style="display:flex;gap:8px;padding:14px 20px 0">
+          <a href="{{ d.mapsUrl }}" target="_blank" rel="noopener" style="flex:1;height:60px;border-radius:4px;background:#8A6B12;color:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:700;text-decoration:none" style-hover="background:#735910;color:#FFFFFF"><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1;font-variation-settings:'FILL' 1">directions</span>経路を見る</a>
+          <sc-if value="{{ d.hasIg }}" hint-placeholder-val="{{ true }}"><a href="{{ d.igUrl }}" target="_blank" rel="noopener" style="flex:1;height:60px;border-radius:4px;border:1px solid #E3D9BE;color:#1F1B17;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:700;text-decoration:none" style-hover="background:#F7EFD3;color:#1F1B17"><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1">alternate_email</span>お店の公式</a></sc-if>
+          <button onClick="{{ d.share }}" style="flex:1;height:60px;border-radius:4px;border:1px solid #E3D9BE;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:700;cursor:pointer" style-hover="background:#F7EFD3"><span style="font-family:'Material Symbols Rounded';font-size:22px;line-height:1">ios_share</span>共有する</button>
+        </div>
+        <div style="margin:26px 20px 0;display:flex;flex-direction:column;gap:12px">
+          <span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:16px;font-weight:700;line-height:1.85;color:#857C72;background:#F7EFD3;border-radius:4px;padding:16px 18px">飯人のコメントを80〜120字で掲載します。料理やお店の雰囲気、おすすめの注文方法を紹介する予定です。</span>
+          <span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:1px;background:#1F1B17"></span><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:14px;font-weight:700">飯人</span><span style="font-size:12px;color:#68615A">飯人のコメントを準備中</span></span>
+        </div>
+        <div style="padding:32px 20px 0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px;border-bottom:1.5px solid #1F1B17"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:19px;font-weight:500">Information</span><span style="font-size:12px;letter-spacing:.1em">店舗情報</span></div>
+          <div style="display:grid;grid-template-columns:72px minmax(0,1fr);font-size:13px">
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;color:#68615A">住所</span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;line-height:1.6;display:flex;justify-content:space-between;gap:8px"><span style="overflow-wrap:anywhere">{{ d.addr }}</span><a href="{{ d.mapsUrl }}" target="_blank" rel="noopener" style="font-weight:700;white-space:nowrap">地図アプリ</a></span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;color:#68615A">営業時間</span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;line-height:1.6;overflow-wrap:anywhere">{{ d.hours }}</span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;color:#68615A">定休日</span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3">{{ d.closed }}</span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;color:#68615A">駐車場</span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;line-height:1.6;display:flex;flex-direction:column;gap:3px"><span style="display:inline-flex;align-items:center;gap:3px"><span style="font-family:'Material Symbols Rounded';font-size:15px;line-height:1;font-variation-settings:'FILL' 1">local_parking</span>{{ d.parking }}</span><span style="font-size:12px;color:#68615A">投稿の原文 {{ d.parkingRaw }}</span></span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;color:#68615A">支払い</span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;line-height:1.6;display:flex;flex-direction:column;gap:3px;align-items:flex-start"><sc-if value="{{ d.cashOnly }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:3px;padding:1px 7px 1px 5px;background:oklch(0.93 0.07 85);border:1px solid oklch(0.80 0.10 80);color:oklch(0.40 0.10 60);font-weight:700"><span style="font-family:'Material Symbols Rounded';font-size:15px;line-height:1;font-variation-settings:'FILL' 1">payments</span>現金のみ</span></sc-if><span>{{ d.pay }}</span></span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3;color:#68615A">公式</span>
+            <span style="padding:11px 0;border-bottom:1px solid #EEE7D3">{{ d.igLabel }}</span>
+          </div>
+          <span style="display:block;font-size:12px;color:#68615A;margin-top:8px">{{ d.src }}をもとに掲載</span>
+        </div>
+        <div style="padding:30px 20px 0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px;border-bottom:1.5px solid #1F1B17"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:19px;font-weight:500">Back Numbers</span><span style="font-size:12px;letter-spacing:.1em">飯人の投稿</span></div>
+          <sc-for list="{{ d.posts }}" as="p" hint-placeholder-count="1">
+            <a href="{{ p.url }}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;min-height:52px;border-bottom:1px solid #EEE7D3;color:#1F1B17;text-decoration:none" style-hover="background:#F7EFD3;color:#1F1B17"><span style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:20px;font-weight:700;width:56px;line-height:1">{{ p.vol }}</span><span style="flex:1;font-size:13px">{{ p.date }}</span><span style="display:inline-flex;align-items:center;gap:2px;font-size:12px;font-weight:700;color:#8A6B12">Instagramで見る<span style="font-family:'Material Symbols Rounded';font-size:15px;line-height:1">north_east</span></span></a>
+          </sc-for>
+        </div>
+        <div style="margin:30px 20px 0;padding:16px 0 40px;border-top:1px solid #1F1B17;display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.8;color:#68615A">
+          <span style="color:#1F1B17;font-weight:700">情報確認日 {{ checkedAtJa }}</span>
+          <span>営業時間や支払い方法は紹介した投稿の情報です。最新情報はお店の公式アカウントで確認してください。</span>
+          <a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;height:44px;font-weight:700;text-decoration:none"><span style="font-family:'Material Symbols Rounded';font-size:17px;line-height:1;font-variation-settings:'FILL' 1">flag</span>情報の誤りを報告する</a>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:2000;background:#1F1B17;color:#FBF7EA;padding:10px 16px;border-radius:4px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(31,27,23,.3)">{{ toast }}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mapTone&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;warm&quot;,&quot;plain&quot;],&quot;default&quot;:&quot;warm&quot;,&quot;tsType&quot;:&quot;'warm'|'plain'&quot;},&quot;latestCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:6,&quot;min&quot;:3,&quot;max&quot;:9,&quot;step&quot;:3,&quot;tsType&quot;:&quot;number&quot;}}">
+const demoImage = (id, genre) => ({"s03":"/meshijin-gourmet-map-pages/assets/generated/western-curry.png","s06":"/meshijin-gourmet-map-pages/assets/generated/cafe-coffee-pancakes.png","babake":"/meshijin-gourmet-map-pages/assets/generated/western-omurice.png","bredah":"/meshijin-gourmet-map-pages/assets/generated/cafe-cheesecake.png","hakone":"/meshijin-gourmet-map-pages/assets/generated/noodle-udon.png","sushi":"/meshijin-gourmet-map-pages/assets/generated/japanese-sashimi.png"}[id] || {"western":"/meshijin-gourmet-map-pages/assets/generated/western-omurice.png","noodle":"/meshijin-gourmet-map-pages/assets/generated/noodle-udon.png","meat":"/meshijin-gourmet-map-pages/assets/generated/meat-shabushabu.png","cafe":"/meshijin-gourmet-map-pages/assets/generated/cafe-cheesecake.png","sushi":"/meshijin-gourmet-map-pages/assets/generated/japanese-sashimi.png","chinese":"/meshijin-gourmet-map-pages/assets/generated/chinese-gyoza.png","bar":"/meshijin-gourmet-map-pages/assets/generated/bar-yakitori.png"}[genre] || "/meshijin-gourmet-map-pages/assets/generated/western-omurice.png");
+
+const GENRES = {
+  cafe: { label: 'カフェ・スイーツ', icon: 'local_cafe', h: 350 },
+  noodle: { label: '麺', icon: 'ramen_dining', h: 80 },
+  meat: { label: '焼肉・肉料理', icon: 'outdoor_grill', h: 25 },
+  sushi: { label: '和食・寿司', icon: 'set_meal', h: 250 },
+  chinese: { label: '中華', icon: 'takeout_dining', h: 150 },
+  bar: { label: '居酒屋・バー', icon: 'sports_bar', h: 305 },
+  western: { label: '洋食・その他', icon: 'restaurant', h: 200 }
+};
+const GORDER = ['cafe', 'noodle', 'meat', 'sushi', 'chinese', 'bar', 'western'];
+const AREAS = [
+  { id: 'nagasaki', label: '長崎市', sub: '中心部・郊外' },
+  { id: 'hamaguchi', label: '浜口・幸町', sub: 'スタジアムシティ周辺' },
+  { id: 'togitsu', label: '時津・長与', sub: '' },
+  { id: 'isahaya', label: '諫早', sub: '' },
+  { id: 'omura', label: '大村', sub: '' },
+  { id: 'sasebo', label: '佐世保', sub: '' },
+  { id: 'unzen', label: '雲仙・島原', sub: '' },
+  { id: 'fukuoka', label: '福岡', sub: '県外' }
+];
+const AL = Object.fromEntries(AREAS.map(a => [a.id, a.label]));
+const BLDG = { stadium: '長崎スタジアムシティ' };
+const DOW = '日月火水木金土';
+const EASE = 'cubic-bezier(.2,.8,.2,1)';
+const tint = h => `oklch(0.935 0.02 ${h})`, mark = h => `oklch(0.89 0.035 ${h})`, deep = h => `oklch(0.42 0.08 ${h})`, pinC = h => `oklch(0.56 0.15 ${h})`;
+const ST = {
+  open: ['oklch(0.45 0.12 150)', 'oklch(0.56 0.15 150)'],
+  later: ['#8A6B12', '#C9A227'],
+  closed: ['#68615A', '#B4AA9B'], after: ['#68615A', '#B4AA9B'], unknown: ['#68615A', '#CFC3A0']
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function jst() { const d = new Date(); const j = new Date(d.getTime() + (d.getTimezoneOffset() + 540) * 60000); return { day: j.getDay(), min: j.getHours() * 60 + j.getMinutes() }; }
+function hm(m) { if (m > 1440) m -= 1440; return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); }
+function statusOf(s, t) {
+  if (s.closed.includes(t.day)) return { key: 'closed', label: '本日定休', note: '' };
+  if (!s.ranges) return { key: 'unknown', label: '営業時間を確認', note: '' };
+  const prev = (t.day + 6) % 7;
+  if (!s.closed.includes(prev)) for (const [a, b0] of s.ranges) { const b = b0 <= a ? b0 + 1440 : b0; if (b > 1440 && t.min < b - 1440) return { key: 'open', label: '営業中', note: hm(b - 1440) + 'まで' }; }
+  for (const [a, b0] of s.ranges) { const b = b0 <= a ? b0 + 1440 : b0; if (t.min >= a && t.min < b) return { key: 'open', label: '営業中', note: (b === 1440 ? '24:00' : hm(b)) + 'まで' }; }
+  const nx = s.ranges.map(r => r[0]).filter(a => a > t.min).sort((x, y) => x - y)[0];
+  if (nx != null) return { key: 'later', label: '準備中', note: hm(nx) + 'から' };
+  return { key: 'after', label: '本日の営業は終了', note: '' };
+}
+function km(a, b) { const R = 6371, r = Math.PI / 180, dLa = (b[0] - a[0]) * r, dLo = (b[1] - a[1]) * r; const x = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
+const fmtDist = d => d < 1 ? Math.max(10, Math.round(d * 100) * 10) + 'm' : d < 100 ? d.toFixed(1) + 'km' : Math.round(d) + 'km';
+const ja = iso => { const [y, m, d] = iso.split('-'); return `${+y}年${+m}月${+d}日`; };
+const dot = iso => { const [y, m, d] = iso.split('-'); return `${y}.${+m}.${+d}`; };
+const volOf = s => s.posts[0].vol || (() => { const [, m, d] = s.posts[0].date.split('-'); return `${+m}/${+d}`; })();
+
+class Component extends DCLogic {
+  state = { view: 'top', storeId: null, area: null, genre: null, q: '', openNow: false, parking: false, cashless: false, listMode: false, sel: null, bldg: null, sort: 'new', userPos: null, toast: '', w: window.innerWidth, tick: 0, ready: !!window.MESHIJIN_DATA };
+  detailRef = React.createRef(); detailBodyRef = React.createRef(); carRef = React.createRef(); listRef = React.createRef();
+  areasRef = React.createRef(); genresRef = React.createRef(); aboutRef = React.createRef();
+
+  componentDidMount() {
+    window.addEventListener('hashchange', this.onHash);
+    window.addEventListener('resize', this.onResize);
+    this.onHash();
+    this.timer = setInterval(() => this.setState(s => ({ tick: s.tick + 1 })), 60000);
+    if (!this.state.ready) { const poll = () => { if (window.MESHIJIN_DATA) this.setState({ ready: true }); else this.pollT = setTimeout(poll, 60); }; poll(); }
+    this._fk = this.fkey();
+    this._prev = { ...this.state };
+  }
+  componentWillUnmount() {
+    window.removeEventListener('hashchange', this.onHash); window.removeEventListener('resize', this.onResize);
+    clearInterval(this.timer); clearTimeout(this.pollT); clearTimeout(this.toastT);
+    if (this.map) { this.map.remove(); this.map = null; }
+  }
+  componentDidUpdate() {
+    const s = this.state;
+    const prev = this._prev || {};
+    this._prev = { ...s };
+    const fk = this.fkey();
+    if (fk !== this._fk) { this._fk = fk; if (this.map) { this.draw(); this.fit(); } }
+    else if (this.map && (prev.sel !== s.sel || prev.storeId !== s.storeId || prev.tick !== s.tick || prev.ready !== s.ready)) this.draw();
+    if (this.map && (prev.w !== s.w || prev.listMode !== s.listMode)) setTimeout(() => this.map && this.map.invalidateSize(), 0);
+    if (s.storeId && s.storeId !== prev.storeId) {
+      if (this.detailBodyRef.current) this.detailBodyRef.current.scrollTop = 0;
+      const el = this.detailRef.current;
+      if (el && !this.reduce()) el.animate(this.wide() ? [{ opacity: 0, transform: 'translateX(-16px)' }, { opacity: 1, transform: 'none' }] : [{ transform: 'translateY(48px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: prev.storeId ? 240 : 380, easing: EASE });
+      this.focus(s.storeId);
+    }
+    if (s.sel && s.sel !== prev.sel) {
+      this.scrollToCard(s.sel);
+      const x = !s.storeId && this.map && !this.wide() && this.stores().find(v => v.id === s.sel);
+      if (x) this.map.panTo([x.lat, x.lng], { animate: !this.reduce() });
+    }
+    if (prev.userPos !== s.userPos) this.drawUser(true);
+  }
+
+  wide() { return this.state.w >= 900; }
+  reduce() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  stores() { return (window.MESHIJIN_DATA && window.MESHIJIN_DATA.stores) || []; }
+  fkey() { const s = this.state; return [s.area, s.genre, s.q.trim(), s.openNow, s.parking, s.cashless, s.ready].join('|'); }
+
+  onResize = () => this.setState({ w: window.innerWidth });
+  onHash = () => {
+    const h = location.hash.replace(/^#\/?/, '');
+    const [path, qs] = h.split('?');
+    const p = new URLSearchParams(qs || '');
+    const n = {};
+    if (path.startsWith('store/')) { n.view = 'map'; n.storeId = path.slice(6); n.sel = n.storeId; n.bldg = null; }
+    else if (path === 'map') {
+      n.view = 'map'; n.storeId = null;
+      if (p.has('area') || p.has('genre')) { n.area = p.get('area') || null; n.genre = p.get('genre') || null; n.q = ''; n.openNow = false; n.parking = false; n.cashless = false; n.bldg = null; n.sel = null; }
+    } else { n.view = 'top'; n.storeId = null; }
+    if (n.view === 'top' && this.state.view !== 'top') window.scrollTo(0, 0);
+    if (n.view === 'map' && this.state.view !== 'map') window.scrollTo(0, 0);
+    this.setState(n);
+  };
+  nav = h => { if (location.hash === h) this.onHash(); else location.hash = h; };
+  toast(msg) { clearTimeout(this.toastT); this.setState({ toast: msg }); this.toastT = setTimeout(() => this.setState({ toast: '' }), 2400); }
+
+  filtered() {
+    const st = this.state, t = jst(), q = st.q.trim().toLowerCase();
+    let list = this.stores().map(s => ({ ...s, st: statusOf(s, t) }));
+    if (st.area) list = list.filter(s => s.area === st.area);
+    if (st.genre) list = list.filter(s => s.genre === st.genre);
+    if (st.openNow) list = list.filter(s => s.st.key === 'open');
+    if (st.parking) list = list.filter(s => s.hasParking);
+    if (st.cashless) list = list.filter(s => s.cashless);
+    if (q) list = list.filter(s => [s.name, s.branch, s.addr, GENRES[s.genre].label, AL[s.area], s.posts.map(p => p.vol).join(' ')].join(' ').toLowerCase().includes(q));
+    if (st.userPos) list.forEach(s => { s.dist = km(st.userPos, [s.lat, s.lng]); });
+    if (st.sort === 'near' && st.userPos) list.sort((a, b) => a.dist - b.dist);
+    return list;
+  }
+
+  mapEl = el => {
+    if (el === this.mapNode) return;
+    if (this.map) { this.map.remove(); this.map = null; }
+    this.mapNode = el;
+    if (el) this.initMap();
+  };
+  initMap() {
+    const L = window.L;
+    if (!L || !window.MESHIJIN_DATA) { setTimeout(() => { if (this.mapNode && !this.map) this.initMap(); }, 80); return; }
+    const map = L.map(this.mapNode, { zoomControl: false });
+    this.map = map;
+    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', { maxZoom: 18, minZoom: 5, attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>' }).addTo(map);
+    map.attributionControl.setPrefix(false);
+    map.getPane('tilePane').style.filter = (this.props.mapTone ?? 'warm') === 'warm' ? 'sepia(.3) saturate(1.5) brightness(1.02)' : 'none';
+    if (this.wide()) L.control.zoom({ position: 'bottomright' }).addTo(map);
+    this.layer = L.layerGroup().addTo(map);
+    this.userLayer = L.layerGroup().addTo(map);
+    map.on('zoomend', () => this.draw());
+    map.on('click', () => { if (this.state.sel || this.state.bldg) this.setState({ sel: null, bldg: null }); });
+    this.fit(true);
+    this.draw(true);
+    this.drawUser(false);
+    if (this.state.storeId) this.focus(this.state.storeId, true);
+    else if (this.state.userPos && this._centerUser) { map.setView(this.state.userPos, 14); this._centerUser = false; }
+  }
+  pad() { return this.wide() ? { padding: [56, 56] } : { paddingTopLeft: [30, 200], paddingBottomRight: [30, 190] }; }
+  fit(initial) {
+    const L = window.L, map = this.map; if (!map) return;
+    const st = this.state;
+    let pts = this.filtered();
+    if (!st.area && !st.genre && !st.q.trim() && !st.openNow && !st.parking && !st.cashless) pts = pts.filter(s => s.lat > 32.735 && s.lat < 32.78 && s.lng > 129.855 && s.lng < 129.892);
+    if (!pts.length) { if (initial) map.setView([32.75, 129.875], 13); return; }
+    const b = L.latLngBounds(pts.map(s => [s.lat, s.lng]));
+    map.fitBounds(b, { ...this.pad(), maxZoom: 15, animate: !initial && !this.reduce() });
+  }
+  focus(id, instant) {
+    const map = this.map; if (!map) return;
+    const s = this.stores().find(x => x.id === id); if (!s) return;
+    const z = Math.max(map.getZoom(), 15);
+    if (instant || !this.wide() || this.reduce()) map.setView([s.lat, s.lng], z, { animate: false });
+    else map.flyTo([s.lat, s.lng], z, { duration: .6 });
+  }
+  pinIcon(s, sel) {
+    const L = window.L, g = GENRES[s.genre], c = pinC(g.h);
+    const ic = sz => `<span style="font-family:'Material Symbols Rounded';font-size:${sz}px;line-height:1;font-variation-settings:'FILL' 1;color:#fff;transform:rotate(45deg)">${g.icon}</span>`;
+    if (!sel) return L.divIcon({ className: '', iconSize: [44, 44], iconAnchor: [22, 44], html: `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${c};border:2.5px solid #fff;box-shadow:0 2px 5px rgba(31,27,23,.35);display:flex;align-items:center;justify-content:center">${ic(15)}</span></div>` });
+    const vol = s.posts[0].vol;
+    return L.divIcon({ className: '', iconSize: [220, 96], iconAnchor: [110, 88], html: `<div style="width:220px;display:flex;flex-direction:column;align-items:center;cursor:pointer"><span style="display:flex;align-items:baseline;gap:5px;background:#1F1B17;color:#fff;padding:4px 9px 5px;border-radius:4px;white-space:nowrap;max-width:220px;overflow:hidden">${vol ? `<b style="font-family:'Zen Kaku Gothic New',sans-serif;font-size:14px;line-height:1">${vol}</b>` : ''}<span style="font-size:12px;font-weight:700;line-height:1.2;overflow:hidden;text-overflow:ellipsis">${esc(s.name)}</span></span><span style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #1F1B17"></span><span style="margin-top:4px;width:42px;height:42px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${c};border:3px solid #fff;box-shadow:0 0 0 2.5px #1F1B17,0 6px 12px rgba(31,27,23,.35);display:flex;align-items:center;justify-content:center">${ic(21)}</span></div>` });
+  }
+  draw(first) {
+    const L = window.L, map = this.map; if (!map || !this.layer) return;
+    this.layer.clearLayers();
+    const st = this.state, list = this.filtered(), z = map.getZoom(), selId = st.storeId || st.sel;
+    const added = [];
+    if (z < 11 && !st.area) {
+      const g = {};
+      list.forEach(s => { const k = s.area === 'hamaguchi' ? 'nagasaki' : s.area; (g[k] = g[k] || []).push(s); });
+      Object.entries(g).forEach(([k, arr]) => {
+        const lat = arr.reduce((a, s) => a + s.lat, 0) / arr.length, lng = arr.reduce((a, s) => a + s.lng, 0) / arr.length;
+        const icon = L.divIcon({ className: '', iconSize: [110, 76], iconAnchor: [55, 23], html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer"><span style="width:46px;height:46px;border-radius:50%;background:#1F1B17;color:#fff;border:3px solid #fff;box-shadow:0 2px 8px rgba(31,27,23,.35);display:flex;align-items:center;justify-content:center;font-family:'Zen Kaku Gothic New',sans-serif;font-size:18px;font-weight:700">${arr.length}</span><span style="background:#fff;padding:1px 6px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(31,27,23,.2)">${AL[k]}</span></div>` });
+        const m = L.marker([lat, lng], { icon }).on('click', () => map.flyTo([lat, lng], 13, { duration: .6 }));
+        m.addTo(this.layer); added.push(m);
+      });
+    } else {
+      const bl = {};
+      list.forEach(s => {
+        if (s.bldg) { (bl[s.bldg] = bl[s.bldg] || []).push(s); return; }
+        const sel = s.id === selId;
+        const m = L.marker([s.lat, s.lng], { icon: this.pinIcon(s, sel), zIndexOffset: sel ? 1000 : 0, title: s.name, keyboard: true }).on('click', () => this.pinTap(s.id));
+        m.addTo(this.layer); added.push(m);
+      });
+      Object.entries(bl).forEach(([k, arr]) => {
+        const s0 = arr[0], on = st.bldg === k || arr.some(s => s.id === selId);
+        const icon = L.divIcon({ className: '', iconSize: [70, 40], iconAnchor: [35, 20], html: `<div style="display:flex;align-items:center;justify-content:center;gap:3px;height:40px;padding:0 9px 0 7px;border-radius:4px;background:${on ? '#1F1B17' : '#fff'};color:${on ? '#fff' : '#1F1B17'};border:2px solid #1F1B17;box-shadow:0 2px 6px rgba(31,27,23,.3);cursor:pointer;width:max-content;margin:0 auto"><span style="font-family:'Material Symbols Rounded';font-size:19px;line-height:1;font-variation-settings:'FILL' 1">apartment</span><span style="font-size:15px;font-weight:700;line-height:1">${arr.length}</span></div>` });
+        const m = L.marker([s0.lat, s0.lng], { icon, zIndexOffset: 500, title: BLDG[k] }).on('click', () => this.setState({ bldg: k, sel: null }));
+        m.addTo(this.layer); added.push(m);
+      });
+    }
+    if (first && !this.reduce()) added.forEach((m, i) => { const el = m.getElement(); const inner = el && el.firstElementChild; if (inner) inner.animate([{ opacity: 0, transform: 'translateY(-24px)' }, { opacity: 1, transform: 'none' }], { duration: 380, delay: 150 + Math.min(i, 20) * 30, easing: 'cubic-bezier(.3,1.4,.5,1)', fill: 'backwards' }); });
+  }
+  drawUser(center) {
+    const L = window.L; if (!this.map || !this.userLayer) return;
+    this.userLayer.clearLayers();
+    const p = this.state.userPos; if (!p) return;
+    L.marker(p, { interactive: false, icon: L.divIcon({ className: '', iconSize: [22, 22], iconAnchor: [11, 11], html: `<span style="display:block;width:22px;height:22px;border-radius:50%;background:oklch(0.55 0.15 250);border:4px solid #fff;box-shadow:0 0 0 6px oklch(0.55 0.15 250 / .18),0 2px 6px rgba(31,27,23,.3)"></span>` }) }).addTo(this.userLayer);
+    if (center) this.map.setView(p, 14);
+  }
+  pinTap(id) {
+    if (this.wide() || this.state.sel === id) this.nav('#/store/' + id);
+    else this.setState({ sel: id, bldg: null, listMode: false });
+  }
+  scrollToCard(id) {
+    const car = this.carRef.current; if (!car) return;
+    const el = car.querySelector(`[data-id="${id}"]`); if (!el) return;
+    car.scrollTo({ left: el.offsetLeft - (car.clientWidth - el.clientWidth) / 2, behavior: this.reduce() ? 'auto' : 'smooth' });
+  }
+  locate = () => {
+    if (!navigator.geolocation) { this.toast('この端末では現在地を使えません'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const p = [pos.coords.latitude, pos.coords.longitude];
+      this._centerUser = !this.map;
+      this.setState({ userPos: p, sort: 'near', area: null });
+      if (this.state.view !== 'map') this.nav('#/map');
+    }, () => this.toast('現在地を取得できませんでした'), { enableHighAccuracy: true, timeout: 8000 });
+  };
+  scrollTo(ref) { const el = ref.current; if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 72, behavior: this.reduce() ? 'auto' : 'smooth' }); }
+  share(s) {
+    const url = location.href.split('#')[0] + '#/store/' + s.id;
+    if (navigator.share) navigator.share({ title: `${s.name}｜飯人グルメマップ`, url }).catch(() => {});
+    else if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => this.toast('リンクをコピーしました'), () => this.toast('コピーできませんでした'));
+  }
+  chip(on) { return on ? { bg: '#1F1B17', fg: '#FFFFFF', bd: '#1F1B17', fw: 700 } : { bg: '#FFFFFF', fg: '#1F1B17', bd: '#E3D9BE', fw: 500 }; }
+
+  renderVals() {
+    const st = this.state, wide = this.wide(), all = this.stores(), list = this.filtered();
+    const isTop = st.view === 'top', isMap = st.view === 'map';
+    const selId = st.storeId || st.sel;
+    const row = s => {
+      const g = GENRES[s.genre], c = ST[s.st.key], sel = s.id === selId;
+      return {
+        imageUrl: demoImage(s.id, s.genre), id: s.id, name: s.name, branch: s.branch, genre: g.label, icon: g.icon, tint: tint(g.h), mark: mark(g.h), deep: deep(g.h), area: AL[s.area], vol: volOf(s),
+        status: s.st.label, statusNote: s.st.note, stColor: c[0], stDot: c[1], cashOnly: s.cashOnly, pr: s.pr, temporary: s.temporary,
+        dist: s.dist != null ? fmtDist(s.dist) : '',
+        rowBg: sel ? '#F7EFD3' : 'transparent',
+        ring: sel ? '0 0 0 2px #1F1B17,0 10px 24px rgba(31,27,23,.22)' : '0 6px 18px rgba(31,27,23,.14)',
+        open: () => this.nav('#/store/' + s.id),
+        hover: () => {}
+      };
+    };
+    const counts = {}; all.forEach(s => { counts[s.area] = (counts[s.area] || 0) + 1; counts[s.genre] = (counts[s.genre] || 0) + 1; });
+    const latestN = Math.max(3, Math.min(9, this.props.latestCount ?? 6));
+    const latest = all.slice(0, latestN).map(s => { const g = GENRES[s.genre]; return { imageUrl: demoImage(s.id, s.genre), name: s.name, area: AL[s.area], icon: g.icon, tint: tint(g.h), mark: mark(g.h), deep: deep(g.h), vol: volOf(s), open: () => this.nav('#/store/' + s.id) }; });
+    const p0 = all[0] && all[0].posts[0];
+    const set = patch => this.setState({ ...patch, sel: null, bldg: null });
+    const areaChips = [{ label: 'すべて', id: null }, ...AREAS].map(a => ({ label: a.label, ...this.chip(st.area === a.id), click: () => set({ area: st.area === a.id ? null : a.id }) }));
+    const genreChips = [{ id: null, label: 'すべて', icon: 'apps', h: null }, ...GORDER.map(id => ({ id, ...GENRES[id] }))].map(g => { const on = st.genre === g.id; return { label: g.label, icon: g.icon, ...this.chip(on), ic: on ? '#FFFFFF' : (g.h != null ? pinC(g.h) : '#68615A'), click: () => set({ genre: st.genre === g.id ? null : g.id }) }; });
+    const toggles = [['openNow', '営業中', 'schedule'], ['parking', '駐車場あり', 'local_parking'], ['cashless', 'キャッシュレス', 'credit_card']].map(([k, label, icon]) => ({ label, icon, ...this.chip(st[k]), click: () => set({ [k]: !st[k] }) }));
+    const gSel = st.genre ? GENRES[st.genre] : null;
+    const ord = list.length && selId && list.some(s => s.id === selId) ? list : all.map(s => ({ ...s }));
+    let d = {};
+    const ds = st.storeId && all.find(s => s.id === st.storeId);
+    if (ds) {
+      const g = GENRES[ds.genre], stt = statusOf(ds, jst()), c = ST[stt.key];
+      const i = Math.max(0, ord.findIndex(s => s.id === ds.id));
+      const step = k => () => { const n = ord[(i + k + ord.length) % ord.length]; if (n) this.nav('#/store/' + n.id); };
+      const p = ds.posts[0];
+      d = {
+        imageUrl: demoImage(ds.id, ds.genre), name: ds.name, branch: ds.branch, hasBranch: !!ds.branch, genre: g.label, icon: g.icon, tint: tint(g.h), mark: mark(g.h), deep: deep(g.h), area: AL[ds.area],
+        vol: p.vol || dot(p.date).slice(5), volPrefix: p.vol ? 'No.' : '', count: ds.posts.length, pr: ds.pr, temporary: ds.temporary,
+        status: stt.label, statusNote: stt.note, stColor: c[0], stDot: c[1],
+        addr: ds.addr || '記載なし', hours: ds.hours, closed: ds.closedText || (ds.closed.length ? ds.closed.map(x => DOW[x]).join('・') : '記載なし'),
+        parking: ds.parking, parkingRaw: ds.parkingRaw || '記載なし', pay: ds.pay, cashOnly: ds.cashOnly,
+        hasIg: !!ds.ig, igUrl: ds.ig ? 'https://www.instagram.com/' + ds.ig.slice(1) + '/' : '', igLabel: ds.ig || '公式アカウントなし',
+        mapsUrl: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(ds.name + ' ' + (ds.addr || '')),
+        posts: ds.posts.map(x => ({ vol: x.vol ? x.vol : '—', date: ja(x.date), url: x.url })),
+        src: (p.vol ? `Vol.${p.vol}` : '投稿') + `（${ja(p.date)}）`,
+        idx: i + 1, total: ord.length, prev: step(-1), next: step(1), share: () => this.share(ds)
+      };
+    }
+    const bArr = st.bldg ? list.filter(s => s.bldg === st.bldg) : [];
+    const fl = s => parseInt(s.floor) || 99;
+    const b = { name: BLDG[st.bldg] || '', count: bArr.length, items: bArr.slice().sort((x, y) => fl(x) - fl(y)).map(s => ({ floor: s.floor || '―', name: s.name, pr: s.pr, temporary: s.temporary, open: () => this.nav('#/store/' + s.id) })) };
+    const near = st.sort === 'near' && !!st.userPos;
+    const ck = window.MESHIJIN_DATA ? window.MESHIJIN_DATA.checkedAt : '2026-09-30';
+    return {
+      rootH: isMap ? '100dvh' : 'auto', rootOv: isMap ? 'hidden' : 'visible',
+      isTop, isMap, wide, narrow: !wide, topWide: isTop && wide, topNarrow: isTop && !wide, mapWide: isMap && wide,
+      topPadB: wide ? '0px' : '92px',
+      latest, latestVol: p0 ? p0.vol : '', latestDate: p0 ? dot(p0.date) : '', storeCount: all.length, checkedAt: dot(ck), checkedAtJa: ja(ck),
+      areaRows: AREAS.map((a, i) => ({ no: i + 1, label: a.label, sub: a.sub, count: counts[a.id] || 0, href: '#/map?area=' + a.id })),
+      genreTiles: GORDER.map(id => { const g = GENRES[id]; return { imageUrl: demoImage(null, id), label: g.label, icon: g.icon, tint: tint(g.h), mark: mark(g.h), deep: deep(g.h), count: counts[id] || 0, href: '#/map?genre=' + id }; }),
+      toAreas: () => this.scrollTo(this.areasRef), toGenres: () => this.scrollTo(this.genresRef), toAbout: () => this.scrollTo(this.aboutRef),
+      areasRef: this.areasRef, genresRef: this.genresRef, aboutRef: this.aboutRef,
+      locate: this.locate, mapEl: this.mapEl, carRef: this.carRef, listRef: this.listRef, detailRef: this.detailRef, detailBodyRef: this.detailBodyRef,
+      q: st.q, hasQ: !!st.q, onSearch: e => this.setState({ q: e.target.value, sel: null, bldg: null }), clearQ: () => this.setState({ q: '' }),
+      areaChips, genreChips, toggles,
+      genreOptions: [{ id: '', label: 'すべてのジャンル' }, ...GORDER.map(id => ({ id, label: GENRES[id].label }))],
+      genreVal: st.genre || '', onGenreSelect: e => set({ genre: e.target.value || null }),
+      genreSelLabel: gSel ? gSel.label : 'ジャンル', genreSelBg: gSel ? '#1F1B17' : '#FFFFFF', genreSelFg: gSel ? '#FFFFFF' : '#1F1B17', genreSelBd: gSel ? '#1F1B17' : '#E3D9BE',
+      hasFilters: !!(st.area || st.genre || st.q || st.openNow || st.parking || st.cashless),
+      clearFilters: () => set({ area: null, genre: null, q: '', openNow: false, parking: false, cashless: false }),
+      count: list.length, isEmpty: st.ready && list.length === 0, rows: list.map(row),
+      sortLabel: near ? '近い順' : '新着順',
+      sortNew: () => this.setState({ sort: 'new' }), sortNear: () => { if (st.userPos) this.setState({ sort: 'near' }); else this.locate(); },
+      sortNewBg: near ? '#FFFFFF' : '#1F1B17', sortNewFg: near ? '#1F1B17' : '#FFFFFF', sortNearBg: near ? '#1F1B17' : '#FFFFFF', sortNearFg: near ? '#FFFFFF' : '#1F1B17',
+      listMode: st.listMode, mapMode: !st.listMode,
+      showMapMode: () => this.setState({ listMode: false }), showListMode: () => this.setState({ listMode: true, bldg: null }),
+      mapSegBg: st.listMode ? '#FFFFFF' : '#1F1B17', mapSegFg: st.listMode ? '#1F1B17' : '#FFFFFF', listSegBg: st.listMode ? '#1F1B17' : '#FFFFFF', listSegFg: st.listMode ? '#FFFFFF' : '#1F1B17',
+      bldgOpen: !!st.bldg && bArr.length > 0, b, closeBldg: () => this.setState({ bldg: null }),
+      bLeft: wide ? 'auto' : '12px', bRight: wide ? '16px' : '12px', bTop: wide ? '72px' : '190px', bW: wide ? '360px' : 'auto',
+      hasDetail: !!ds, d,
+      closeDetail: () => this.nav('#/map'),
+      dTop: wide ? '0px' : '10px', dW: wide ? '400px' : '100%', dShadow: wide ? '10px 0 30px rgba(31,27,23,.14)' : '0 -10px 30px rgba(31,27,23,.2)', dRadius: wide ? '0px' : '4px 4px 0 0',
+      hasToast: !!st.toast, toast: st.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

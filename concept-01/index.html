@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="飯人がInstagramで紹介した長崎の飲食店を、エリアやジャンルから探せます。紹介投稿、営業時間、駐車場、支払い方法をまとめて確認できます。">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f6f3eb">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>飯人グルメマップ｜長崎の紹介店を探す</title>
+  <link rel="icon" href="/meshijin-gourmet-map-pages/concept-01/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/meshijin-gourmet-map-pages/vendor/leaflet.css">
+  <link rel="stylesheet" href="/meshijin-gourmet-map-pages/concept-01/styles.css">
+  <script src="/meshijin-gourmet-map-pages/vendor/leaflet.js" defer></script>
+  <script type="module" src="/meshijin-gourmet-map-pages/concept-01/app.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">本文へ移動</a>
+  <div class="color-bar" aria-hidden="true"></div>
+  <div id="preview-note" class="preview-note">案1のデザイン比較版。店舗情報と位置は確認前です。画像はAI生成の仮画像です。<a href="/meshijin-gourmet-map-pages/">案を比較する</a></div>
+  <header class="site-header wrap">
+    <a class="brand" href="#/" aria-label="飯人グルメマップのホーム"><span class="brand-name">飯人</span><span class="brand-en">GOURMET MAP<br>NAGASAKI</span></a>
+    <nav aria-label="メインメニュー"><a class="header-link" href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener noreferrer">Instagram <span aria-hidden="true">↗</span></a><a class="button dark small" href="#/map">お店を探す <span aria-hidden="true">→</span></a></nav>
+  </header>
+  <main id="main" tabindex="-1"><div class="loading wrap" role="status">お店の情報を読み込んでいます。</div></main>
+  <footer class="site-footer wrap">
+    <a class="brand-name" href="#/">飯人</a>
+    <p>営業時間や支払い方法は、紹介投稿の記載に基づいています。<br>来店前に、店舗の公式アカウントで最新情報をご確認ください。</p>
+    <div class="footer-links"><a href="#/about">掲載情報について</a><a href="#/privacy">このサイトの利用について</a><a href="https://www.instagram.com/meshijin_food/" target="_blank" rel="noopener noreferrer">飯人のInstagram <span aria-hidden="true">↗</span></a></div>
+    <small>飯人グルメマップ</small>
+  </footer>
+  <dialog id="store-dialog" aria-labelledby="store-title"><button class="dialog-close icon-button" aria-label="店舗詳細を閉じる" data-action="close">×</button><div id="store-content"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="wrap">お店の検索にはJavaScriptが必要です。ブラウザーの設定で有効にしてください。<a href="https://www.instagram.com/meshijin_food/">飯人のInstagramで紹介店を見る</a></p></noscript>
+</body>
+</html>
